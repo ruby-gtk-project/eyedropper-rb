@@ -21,6 +21,10 @@ branch is the port.
   palette, and the xkcd color survey — individually switchable.
 - **Choose which formats show and in what order**, by drag, by menu, or by
   keyboard.
+- **Search for colors from the GNOME Shell overview** — type `blue` or
+  `#2e3440` into the shell and get a swatch that opens the app on that color.
+- **Pick a color with Ctrl+P from anywhere**, through the global-shortcuts
+  portal, without focusing the app first.
 
 ## Running it
 
@@ -40,8 +44,11 @@ and desktop entry installed, and the gems wrapped.
 ## Testing
 
 ```sh
-rake            # unit tests + rubocop
-rake drive      # build the real window headlessly and drive it
+rake                  # unit tests + rubocop
+rake drive            # build the real window headlessly and drive it
+rake drive_search     # serve the search provider and call it back over D-Bus
+rake drive_portals    # exercise the portal clients against the real portal
+rake check            # all of the above
 ```
 
 - `test/test_color.rb` needs no display. It checks the color conversions and
@@ -49,9 +56,16 @@ rake drive      # build the real window headlessly and drive it
   all fourteen notations.
 - `test/drive_window.rb` builds the real window with no display server, walks
   every page, dialog and control, and writes screenshots to `tmp/shots`.
+- `test/drive_search_provider.rb` serves the search provider on the real session
+  bus and calls every one of its methods back as a client, the way GNOME Shell
+  would.
+- `test/drive_portals.rb` checks that every argument sent to the portals is
+  well-formed GVariant of the declared type, that replies are read back
+  correctly, and — where a portal is running — that a real call reaches it.
 
-`PORTING.md` records how this port maps onto the Rust original, what was left
-out and why, and the upstream bugs it declines to reproduce.
+`PORTING.md` records how this port maps onto the Rust original, the D-Bus
+binding limits that shape `lib/eyedropper/dbus.rb`, and the upstream bugs it
+declines to reproduce.
 
 ## Style
 

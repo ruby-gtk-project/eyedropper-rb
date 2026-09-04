@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "fileutils"
+
 module Eyedropper
   DATA_DIR = File.expand_path("../data", __dir__)
 end

@@ -3,7 +3,10 @@
 require "adwaita"
 
 require_relative "../eyedropper"
+require_relative "dbus"
 require_relative "picker"
+require_relative "search_provider"
+require_relative "global_shortcuts"
 require_relative "widgets/history_item"
 require_relative "widgets/color_format_row"
 require_relative "widgets/placeholder_page"

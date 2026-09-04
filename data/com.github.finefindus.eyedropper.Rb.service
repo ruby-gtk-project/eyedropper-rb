@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=com.github.finefindus.eyedropper.Rb
+Exec=@BINDIR@/eyedropper-rb --gapplication-service

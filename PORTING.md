@@ -1,7 +1,7 @@
 # Porting notes
 
-How this Ruby port maps onto the Rust original, what it leaves out, and the
-things that only became visible by running it.
+How this Ruby port maps onto the Rust original, and the things that only became
+visible by running it.
 
 ## Shape
 
@@ -42,20 +42,30 @@ Three structural simplifications, all of which delete code rather than add it:
   `/` or whitespace, an optional `)`. `Parser` scans that once and each format
   says how to read its own slots.
 
-## Left out
+## Desktop integration
 
-- **The GNOME Shell search provider** (`SearchProviderImpl`, the
-  `.SearchProvider.service` D-Bus activation, and `App::icon`'s GL-rendered
-  swatch). This is desktop integration exported over D-Bus, not part of the
-  app's own UI, and it needs a `.service` file installed against a fixed bus
-  name to do anything at all.
-- **Global shortcuts and background access** (the `ashpd`
-  `GlobalShortcuts`/`Background` portal sessions). Same reasoning: it makes
-  Ctrl+P work while the app is unfocused, which is a system integration rather
-  than a screen, dialog or control.
+Both of upstream's system integrations are present.
 
-Everything the issue asks for — every window, dialog, page, menu item,
-shortcut, preference, action, empty state and error state — is present.
+**The GNOME Shell search provider** (`lib/eyedropper/search_provider.rb`) serves
+`org.gnome.Shell.SearchProvider2` itself, where upstream uses the
+`search-provider` crate. Typing a color into the shell's search returns it as a
+result that opens the app on that color; result identifiers are the color's own
+hex string, so nothing has to be remembered between the search and the
+activation. Each result carries a swatch drawn in its own color — upstream
+renders one with a GL renderer and hands it over as `icon-data`, which needs
+child access to a GVariant that these bindings do not have, so this writes a
+small SVG to the cache directory and passes its path as `gicon`, which is how a
+`GFileIcon` serialises. `data/*.service` and
+`data/*.search-provider.ini` are installed so the shell can find and
+D-Bus-activate it.
+
+**Global shortcuts and background access**
+(`lib/eyedropper/global_shortcuts.rb`) drive the `GlobalShortcuts` and
+`Background` portals directly, where upstream uses `ashpd`. Ctrl+P is bound
+system-wide with the same shortcut id and preferred trigger upstream uses, and
+background permission is requested with the same reason and command line. Every
+part is best-effort: a portal that is absent, refuses, or errors leaves the app
+running normally with only its in-window accelerator.
 
 ## The color picker
 
@@ -63,9 +73,8 @@ shortcut, preference, action, empty state and error state — is present.
 `org.freedesktop.portal.Screenshot.PickColor` over the session bus directly.
 The portal answers asynchronously: the call returns a request object path and
 the color arrives later as a `Response` signal. The request path is derived from
-the caller's unique bus name and a token, so it is computed and subscribed to
-*before* the call is made — otherwise a fast portal can answer before the
-subscription exists.
+the caller's unique bus name and a token, so it is computed and watched *before*
+the call is made — otherwise a fast portal can answer before the watch exists.
 
 Upstream's COSMIC special-case is kept: that portal exports `PickColor` and then
 always fails, so it is treated as unavailable up front rather than after a
@@ -103,6 +112,39 @@ and read by nothing; the XYZ and Lab conversions are hardcoded to D65/2°. They
 are not carried over. Every other key keeps its name, type and default, and
 `name-sources-flag` keeps upstream's bit values, so an existing configuration
 means the same thing here.
+
+## D-Bus through these bindings
+
+Everything in `lib/eyedropper/dbus.rb` is shaped by four binding limits, each
+found by running into it:
+
+- **`GLib::Variant.new(value, type)` cannot build a tuple or an `a{sv}`** — it
+  raises `NotImplementedError: TODO: Ruby -> GVariant`. `GLib::Variant.parse`
+  takes the GVariant *text* format and builds anything, so every outgoing
+  argument is written as text. An empty array has to name its type (`@as []`),
+  since text format cannot infer an element type from no elements.
+- **`GLib::Variant` exposes only `type`, `value`, `to_s` and `inspect`.** There
+  is no child access, and `value` raises on any dictionary. Incoming `a{sv}` is
+  therefore read back out of `to_s`, which is the same text format.
+- **`Gio.bus_own_name` raises `FrozenError`** however it is called, so a
+  well-known name is claimed by calling `RequestName` on the bus directly.
+- **No D-Bus signal carrying `a{sv}` can be received in-process.** Both
+  `signal_subscribe` and `Gio::DBusProxy`'s `g-signal` convert the payload to
+  Ruby before handing it over, hitting the same dictionary limit — and the
+  exception is raised inside the binding's own callback trampoline, so the
+  callback cannot rescue it and it takes the process down. `add_filter`, which
+  would see the raw message, is dispatched on the D-Bus worker thread and the
+  bindings refuse to call into Ruby from there. Since every portal `Response` is
+  `(ua{sv})`, `DBus.monitor` shells out to `gdbus monitor` — part of glib, which
+  is already a hard dependency — and parses the text form it prints. The reading
+  thread hands whole lines back through `GLib::Idle` so callers stay
+  single-threaded.
+
+Asymmetries worth remembering: `call_sync` and `call_finish` hand back
+*unwrapped* Ruby values, not variants, and a registered method handler receives
+its parameters as a plain Ruby `Array` — but its reply must be a `GLib::Variant`
+of exactly the declared type, or GDBus drops it and the caller waits out its
+timeout instead of seeing an error.
 
 ## ruby-gnome and GTK notes found while writing this
 

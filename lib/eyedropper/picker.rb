@@ -19,7 +19,7 @@ module Eyedropper
     CANCELLED = 1
 
     class << self
-      # True when the desktop is known not to service a pick request, so the
+      # True unless the desktop is known not to service a pick request, so the
       # window can show its error page without making the user try first.
       #
       # COSMIC's portal exports PickColor and then always fails, which upstream
@@ -28,16 +28,15 @@ module Eyedropper
         ENV.fetch("XDG_CURRENT_DESKTOP", "").downcase != "cosmic"
       end
 
-      # Yields a Color on success, nil when the user cancelled, and raises
-      # nothing — a broken portal is reported through `on_error`.
+      # Calls back with a Color on success, `on_cancel` when the user dismissed
+      # the picker, and `on_error` for anything else. Raises nothing.
       def pick(on_success:, on_cancel:, on_error:)
-        connection = Gio::DBus.session
+        connection = DBus.session
         token = "eyedropper#{rand(1 << 32)}"
-        handle = request_path(connection, token)
 
-        subscribe(connection, handle) do |response, results|
+        watch_for_response(token) do |response, body|
           case response
-          when SUCCESS then on_success.call(color_from(results))
+          when SUCCESS then on_success.call(color_from(body))
           when CANCELLED then on_cancel.call
           else on_error.call("The color picker returned no color")
           end
@@ -56,7 +55,7 @@ module Eyedropper
               OBJECT_PATH,
               SCREENSHOT_INTERFACE,
               "PickColor",
-              GLib::Variant.new(["", { "handle_token" => GLib::Variant.new(token) }], "(sa{sv})"),
+              DBus.variant("('', {'handle_token': <#{DBus.quote(token)}>})"),
               nil,
               :none,
               -1,
@@ -69,34 +68,24 @@ module Eyedropper
             end
           end
 
-          # The portal derives the request's object path from the caller's
-          # unique bus name and the token, so it can be subscribed to before the
-          # method call is made and no response can be missed.
-          def request_path(connection, token)
-            sender = connection.unique_name.sub(/\A:/, "").tr(".", "_")
-            "#{OBJECT_PATH}/request/#{sender}/#{token}"
-          end
-
-          def subscribe(connection, handle)
-            subscription = nil
-            subscription = connection.signal_subscribe(
+          # Watched before the call is made, because the portal derives the
+          # request path from the token and may answer immediately.
+          def watch_for_response(token)
+            DBus.monitor(
               BUS_NAME,
-              REQUEST_INTERFACE,
+              DBus.request_path(DBus.session, token),
               "Response",
-              handle,
-              nil,
-              :none,
-            ) do |_conn, _sender, _path, _iface, _signal, parameters|
-              connection.signal_unsubscribe(subscription)
-              values = parameters.value
-              yield(values[0], values[1])
+            ) do |body|
+              yield(DBus.response_code(body), body)
+              true
             end
           end
 
           # The portal reports the color as three doubles in 0..1, without alpha.
-          def color_from(results)
-            components = results["color"]
-            if components.nil?
+          def color_from(body)
+            components = DBus.doubles(DBus.lookup(body, "color"))
+
+            if components.length < 3
               nil
             else
               Color.new(

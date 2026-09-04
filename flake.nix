@@ -115,12 +115,23 @@
           installPhase = ''
             runHook preInstall
 
-            mkdir -p $out/share/eyedropper-rb $out/share/applications
+            mkdir -p $out/share/eyedropper-rb $out/share/applications \
+              $out/share/dbus-1/services
             cp -r lib data $out/share/eyedropper-rb/
             # bin/ has to sit next to lib/ for the launcher's require_relative.
             install -Dm755 bin/eyedropper-rb $out/share/eyedropper-rb/bin/eyedropper-rb
 
             cp data/com.github.finefindus.eyedropper.Rb.desktop $out/share/applications/
+
+            # GNOME Shell reads the search provider's ini to learn the bus name
+            # and object path; the two .service files let D-Bus start the app on
+            # demand when the shell searches while it is not running.
+            install -Dm644 data/com.github.finefindus.eyedropper.Rb.search-provider.ini \
+              -t $out/share/gnome-shell/search-providers
+            for service in data/*.service; do
+              sed "s|@BINDIR@|$out/bin|g" "$service" \
+                > "$out/share/dbus-1/services/$(basename "$service")"
+            done
             install -Dm644 data/com.github.finefindus.eyedropper.Rb.metainfo.xml \
               -t $out/share/metainfo
             install -Dm644 data/icons/hicolor/scalable/apps/com.github.finefindus.eyedropper.Rb.svg \
@@ -141,6 +152,7 @@
               --add-flags "-rbundler/setup" \
               --add-flags "$out/share/eyedropper-rb/bin/eyedropper-rb" \
               --set GI_TYPELIB_PATH "${typelibPath}" \
+              --prefix PATH : "${pkgs.glib.bin}/bin" \
               --set GDK_PIXBUF_MODULE_FILE "${pkgs.librsvg}/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache" \
               --prefix XDG_DATA_DIRS : "$out/share" \
               --prefix XDG_DATA_DIRS : "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}" \
@@ -172,6 +184,8 @@
           # Gio::Settings aborts on the app's own schema.
           shellHook = ''
             export GI_TYPELIB_PATH="${typelibPath}"
+            # `gdbus` reads the portal signals the bindings cannot; see PORTING.md.
+            export PATH="${pkgs.glib.bin}/bin:$PATH"
             export GDK_PIXBUF_MODULE_FILE="${pkgs.librsvg}/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache"
             export XDG_DATA_DIRS="$PWD/build/share:${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk4}/share/gsettings-schemas/${pkgs.gtk4.name}:${pkgs.adwaita-icon-theme}/share:$XDG_DATA_DIRS"
             unset BUNDLE_GEMFILE BUNDLE_FROZEN BUNDLE_PATH

@@ -22,9 +22,22 @@ task drive: :schema do
   sh("env -u DISPLAY -u WAYLAND_DISPLAY ruby test/drive_window.rb")
 end
 
+desc "Serve the search provider on the session bus and call it back"
+task drive_search: :schema do
+  sh("ruby test/drive_search_provider.rb")
+end
+
+desc "Exercise the portal clients against the session's real portal"
+task drive_portals: :schema do
+  sh("ruby test/drive_portals.rb")
+end
+
 desc "Run rubocop"
 task :lint do
   sh("rubocop")
 end
 
 task default: %i[test lint]
+
+desc "Every check: units, the window, the search provider, the portals, and lint"
+task check: %i[test drive drive_search drive_portals lint]

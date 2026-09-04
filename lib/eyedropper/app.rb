@@ -18,6 +18,12 @@ module Eyedropper
           Gtk::Window.set_default_icon_name(Config::APP_ID)
           setup_actions
           setup_accels
+          start_desktop_integration
+        end
+
+        application.signal_connect("shutdown") do
+          search_provider.stop
+          global_shortcuts.stop
         end
 
         application.signal_connect("activate") do
@@ -48,6 +54,18 @@ module Eyedropper
     end
 
     def clear_history_action = @clear_history_action ||= Gio::SimpleAction.new("clear-history")
+
+    # Serves the GNOME Shell search provider: typing a color into the shell's
+    # search offers it as a result that opens the app on that color.
+    def search_provider
+      @search_provider ||= SearchProvider.new(on_activate: method(:activate_search_result))
+    end
+
+    # Binds Ctrl+P system-wide through the GlobalShortcuts portal, so a color
+    # can be picked without focusing the app first.
+    def global_shortcuts
+      @global_shortcuts ||= GlobalShortcuts.new(on_activated: method(:pick_from_shortcut))
+    end
 
       private
 
@@ -88,6 +106,32 @@ module Eyedropper
             widget.signal_connect("closed") { window.order_formats }
             widget.present(window.window)
           end
+        end
+
+        # Both of these talk to the session bus, and neither is allowed to stop
+        # the app starting: a missing bus, a portal that refuses, or a name
+        # already taken by another instance all just mean the app runs with its
+        # own window and nothing else.
+        def start_desktop_integration
+          search_provider.start
+          global_shortcuts.start
+        end
+
+        # A search result identifier is the color's own hex string.
+        def activate_search_result(identifier)
+          Color.from_hex(identifier).then do |color|
+            unless color.nil?
+              app.activate
+              window.set_color(color)
+              window.present
+            end
+          end
+        end
+
+        def pick_from_shortcut
+          app.activate
+          window.pick_color
+          window.present
         end
 
         def show_about

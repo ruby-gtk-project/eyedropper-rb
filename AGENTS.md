@@ -33,11 +33,19 @@ bundled gems from `gemset.nix`. Regenerate that file with `bundix -l` whenever
     parser, checked against upstream's own test vectors.
   - `test/drive_window.rb` builds the real window headlessly, drives every page,
     dialog and control, and writes screenshots to `tmp/shots`.
+  - `test/drive_search_provider.rb` serves the GNOME Shell search provider on the
+    real session bus and calls it back as a client.
+  - `test/drive_portals.rb` exercises the color picker and global-shortcuts
+    portal clients against the session's real portal.
+  - `rake check` runs all of them plus rubocop.
 - `nix build` produces the installable app.
 
 `PORTING.md` records how this port maps onto the Rust original and the
-ruby-gnome and GTK defects found while writing it — read it before changing the
-color conversions, the parsers or the screenshot harness.
+ruby-gnome, GTK and GDBus defects found while writing it — read it before
+changing the color conversions, the parsers, anything under `dbus.rb`, or the
+screenshot harness. In particular: no D-Bus signal carrying `a{sv}` can be
+received in-process, which is why portal replies are read through
+`gdbus monitor`.
 
 ## Style
 
