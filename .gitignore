@@ -1,4 +1,6 @@
 /.direnv/
 /vendor/bundle/
 /result
-Gemfile.lock
+
+/build/
+/tmp/

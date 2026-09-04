@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Eyedropper (Ruby)
+GenericName=Color Picker
+Comment=Pick and format colors
+Exec=eyedropper-rb
+Icon=com.github.finefindus.eyedropper.Rb
+Terminal=false
+Type=Application
+Categories=GTK;GNOME;Graphics;Utility;
+StartupNotify=true
+Keywords=Color;Picker;Hex;RGB;HSL;CMYK;Palette;

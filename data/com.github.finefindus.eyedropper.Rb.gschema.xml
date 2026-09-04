@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schemalist>
+  <schema path="/com/github/finefindus/eyedropper/Rb/" id="com.github.finefindus.eyedropper.Rb" gettext-domain="eyedropper-rb">
+    <key name="visible-formats" type="as">
+      <default>[ 'name', 'hex', 'rgb', 'hsl', 'hsv', 'cmyk' ]</default>
+      <summary>Visible formats</summary>
+      <description>Visible formats in the main screen</description>
+    </key>
+    <key name="format-order" type="as">
+      <default>[ 'name', 'hex', 'rgb', 'hsl', 'hsv', 'cmyk', 'xyz', 'cielab', 'hwb', 'hcl', 'lms', 'hunterlab', 'oklab', 'oklch' ]</default>
+      <summary>Format Order</summary>
+      <description>Order, in which the available formats are displayed.</description>
+    </key>
+    <key name="alpha-position" type="i">
+      <default>0</default>
+      <summary>Alpha Position</summary>
+      <description>At which position the alpha values are shown, e.g. not shown, the end or at the start. This preference is used in multiple formats, like hex, rgb and hsl.</description>
+    </key>
+    <key name="rgb-notation" type="i">
+      <default>0</default>
+      <summary>RGB Notation</summary>
+      <description>Whether RGB values should be displayed as integers or decimals</description>
+    </key>
+    <key name="precision-digits" type="u">
+      <default>2</default>
+      <summary>Precision</summary>
+      <description>Number of digits displayed after the numeric point</description>
+    </key>
+    <key name="name-sources-flag" type="u">
+      <default>15</default>
+      <summary>Which color palettes are used as sources for color names</summary>
+      <description>A bitflag of which color name sources should be used.</description>
+    </key>
+  </schema>
+</schemalist>

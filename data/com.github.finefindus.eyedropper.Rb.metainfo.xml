@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.github.finefindus.eyedropper.Rb</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Eyedropper (Ruby)</name>
+  <summary>Pick and format colors</summary>
+  <description>
+    <p>Enter or pick a color and view it in different formats.</p>
+    <p>A Ruby GTK4 / Libadwaita port of Eyedropper by FineFindus.</p>
+  </description>
+  <launchable type="desktop-id">com.github.finefindus.eyedropper.Rb.desktop</launchable>
+  <url type="homepage">https://apps.gnome.org/Eyedropper</url>
+</component>
