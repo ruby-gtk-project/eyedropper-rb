@@ -37,7 +37,5 @@ task :lint do
   sh("rubocop")
 end
 
-task default: %i[test lint]
-
 desc "Every check: units, the window, the search provider, the portals, and lint"
 task check: %i[test drive drive_search drive_portals lint]
