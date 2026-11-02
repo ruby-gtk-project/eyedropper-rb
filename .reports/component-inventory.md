@@ -32,6 +32,10 @@ the upstream widget tree; `partial` = exists with a named gap; `no` = absent.
 | 15 | `data/com.github.finefindus.eyedropper.gschema.xml.in` | `lib/eyedropper/settings.rb`, `data/…Rb.gschema.xml` | settings schema | partial |
 | 16 | `data/resources/resources.gresource.xml` + `data/resources/icons/*` | `data/icons/hicolor/**`, `data/icons/shattered-picker.svg` | resources | yes (icon theme dir replaces GResource) |
 | 17 | `po/` (34 catalogues, `po/LINGUAS`) | `po/`, `lib/eyedropper/i18n.rb` | translations | yes |
+| 18 | `src/application.rs` (`setup_search_provider`, `SearchProviderImpl`) + `data/…search-provider.ini` + `data/…SearchProvider.service.in` | `lib/eyedropper/search_provider.rb`, `data/…Rb.search-provider.ini`, `data/…Rb.SearchProvider.service` | shell search provider | yes (swatch shipped as a `GFileIcon` SVG, not `icon-data`) |
+| 19 | `src/application.rs` (`setup_global_shortcuts`, `EyedropperColorPick`) | `lib/eyedropper/global_shortcuts.rb` | global shortcut | yes |
+| 20 | `src/application.rs` (`request_background_access`) + `data/…service.in` | `lib/eyedropper/dbus.rb`, `data/…Rb.service` | background/D-Bus activation | yes |
+| 21 | `data/…desktop.in.in`, `data/…metainfo.xml.in.in` | `data/…Rb.desktop`, `data/…Rb.metainfo.xml` | desktop metadata | partial (English only — no `msgfmt --desktop`/`--xml` merge step) |
 
 ---
 
