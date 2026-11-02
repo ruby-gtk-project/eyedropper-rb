@@ -5,6 +5,8 @@ module Eyedropper
     # One editable row: the current color written in a single notation, with a
     # button that copies it — or applies it, once the entry has been edited.
     class ColorFormatRow
+      include I18n::Helpers
+
       # How long the error/success tint stays on the row.
       FLASH_MS = 350
 
@@ -94,7 +96,7 @@ module Eyedropper
           def copy_to_clipboard
             text = entry.text
             entry.clipboard.set(text)
-            @on_toast.call("Copied “#{text}”", Adwaita::ToastPriority::HIGH)
+            @on_toast.call(_("Copied “{}”").sub("{}", text), Adwaita::ToastPriority::HIGH)
           end
 
           # True once the entry holds something other than what was displayed,
@@ -108,7 +110,7 @@ module Eyedropper
             if show_apply
               format_button.icon_name = "check-plain-symbolic"
               format_button.add_css_class("suggested-action")
-              format_button.tooltip_text = "Apply"
+              format_button.tooltip_text = _("Apply")
             else
               format_button.icon_name = "edit-copy-symbolic"
               format_button.remove_css_class("suggested-action")

@@ -5,6 +5,8 @@ module Eyedropper
   # over a stack of three pages — the empty state, the portal error state, and
   # the main view of format rows beside the color history.
   class Window
+    include I18n::Helpers
+
     # A history swatch is about this tall; the count decides whether the list
     # will scroll, and therefore whether room must be left for a scrollbar.
     ITEM_HEIGHT = 40
@@ -183,19 +185,19 @@ module Eyedropper
 
     def header_bar = @header_bar ||= Adwaita::HeaderBar.new
 
-    def window_title = @window_title ||= Adwaita::WindowTitle.new(Config::APP_NAME, "")
+    def window_title = @window_title ||= Adwaita::WindowTitle.new(_(Config::APP_NAME), "")
 
     def color_picker_button
       @color_picker_button ||= Gtk::Button.new.tap do |widget|
         widget.icon_name = "color-select-symbolic"
-        widget.tooltip_text = "Pick a Color"
+        widget.tooltip_text = c_("Tooltip of the colorpicker button", "Pick a Color")
       end
     end
 
     def menu_button
       @menu_button ||= Gtk::MenuButton.new.tap do |widget|
         widget.icon_name = "open-menu-symbolic"
-        widget.tooltip_text = "Main Menu"
+        widget.tooltip_text = _("Main Menu")
         widget.primary = true
         widget.menu_model = primary_menu
       end
@@ -210,15 +212,15 @@ module Eyedropper
 
     def history_section
       @history_section ||= Gio::Menu.new.tap do |menu|
-        menu.append("_Clear History", "app.clear-history")
-        menu.append("_Random Color", "app.random-color")
+        menu.append(_("_Clear History"), "app.clear-history")
+        menu.append(_("_Random Color"), "app.random-color")
       end
     end
 
     def app_section
       @app_section ||= Gio::Menu.new.tap do |menu|
-        menu.append("_Preferences", "app.preferences")
-        menu.append("_About Eyedropper", "app.about")
+        menu.append(_("_Preferences"), "app.preferences")
+        menu.append(_("_About Eyedropper"), "app.about")
       end
     end
 
@@ -258,7 +260,7 @@ module Eyedropper
     # from screen readers and cannot be focused.
     def color_edit_button
       @color_edit_button ||= Gtk::Button.new.tap do |widget|
-        widget.tooltip_text = "Edit Color"
+        widget.tooltip_text = c_("Tooltip of the palette button", "Edit Color")
         widget.margin_top = 12
         widget.margin_start = 12
         widget.margin_end = 12
@@ -408,8 +410,8 @@ module Eyedropper
         end
 
         def undo_toast(cleared)
-          Adwaita::Toast.new("Cleared history").tap do |toast|
-            toast.button_label = "Undo"
+          Adwaita::Toast.new(_("Cleared history")).tap do |toast|
+            toast.button_label = _("Undo")
             toast.priority = Adwaita::ToastPriority::HIGH
             toast.signal_connect("button-clicked") do
               @history.concat(cleared.reject { |color| @history.include?(color) })
@@ -427,7 +429,7 @@ module Eyedropper
         end
 
         def report_pick_failure
-          show_toast("Failed to pick a color")
+          show_toast(_("Failed to pick a color"))
           show_portal_error_page
         end
   end

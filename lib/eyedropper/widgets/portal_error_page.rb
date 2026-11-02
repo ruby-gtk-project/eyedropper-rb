@@ -9,6 +9,8 @@ module Eyedropper
     # can show an illustration where the icon would go. Adw.StatusPage takes a
     # paintable for exactly that, so this is the same page without the scaffold.
     class PortalErrorPage
+      include I18n::Helpers
+
       ILLUSTRATION = "shattered-picker.svg"
 
       def build
@@ -19,8 +21,8 @@ module Eyedropper
 
       def status_page
         @status_page ||= Adwaita::StatusPage.new.tap do |page|
-          page.title = "Color Picker not Available"
-          page.description = "The system is not properly configured to allow for color picking"
+          page.title = _("Color Picker not Available")
+          page.description = _("The system is not properly configured to allow for color picking")
 
           unless illustration.nil?
             page.paintable = illustration
@@ -39,7 +41,7 @@ module Eyedropper
       end
 
       def continue_button
-        @continue_button ||= Gtk::Button.new(label: "_Continue Regardless").tap do |widget|
+        @continue_button ||= Gtk::Button.new(label: _("_Continue Regardless")).tap do |widget|
           widget.use_underline = true
           widget.halign = :center
           widget.action_name = "app.placeholder"

@@ -5,6 +5,8 @@ module Eyedropper
     # The bottom sheet's contents: a preview swatch over hue, saturation and
     # lightness sliders, and a button that adopts the result.
     class EditSheet
+      include I18n::Helpers
+
       def initialize(on_apply:, css_provider:)
         @on_apply = on_apply
         @css_provider = css_provider
@@ -69,7 +71,7 @@ module Eyedropper
       def lightness_scale = @lightness_scale ||= build_scale(100, "value-slider")
 
       def apply_button
-        @apply_button ||= Gtk::Button.new(label: "Apply").tap do |widget|
+        @apply_button ||= Gtk::Button.new(label: _("Apply")).tap do |widget|
           widget.use_underline = true
           widget.halign = :center
           widget.add_css_class("pill")

@@ -12,6 +12,8 @@ module Eyedropper
   # with an error leave the app running normally with only its in-window
   # accelerator.
   class GlobalShortcuts
+    include I18n::Helpers
+
     PORTAL = "org.freedesktop.portal.Desktop"
     PORTAL_PATH = "/org/freedesktop/portal/desktop"
     SHORTCUTS_INTERFACE = "org.freedesktop.portal.GlobalShortcuts"
@@ -112,7 +114,7 @@ module Eyedropper
         # and the request options.
         def bind_arguments(handle, token)
           shortcut = "(#{DBus.quote(SHORTCUT_PICK_COLOR)}, " \
-                     "{'description': <#{DBus.quote('Pick a New Color')}>, " \
+                     "{'description': <#{DBus.quote(_('Pick a New Color'))}>, " \
                      "'preferred_trigger': <#{DBus.quote('CTRL+p')}>})"
 
           "(objectpath #{DBus.quote(handle)}, [#{shortcut}], '', " \
@@ -138,7 +140,7 @@ module Eyedropper
         end
 
         def background_arguments(token)
-          reason = "Allow color selection while the application runs in the background"
+          reason = _("Allow color selection while the application runs in the background")
 
           "('', {'handle_token': <#{DBus.quote(token)}>, " \
             "'reason': <#{DBus.quote(reason)}>, " \

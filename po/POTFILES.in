@@ -1,0 +1,18 @@
+# Sources holding translatable strings in this port. Upstream's list names the
+# Rust sources and blueprint templates; the Ruby port builds its widgets in
+# code, so the UI strings live in lib/ instead.
+# METADATA files
+data/com.github.finefindus.eyedropper.Rb.desktop
+data/com.github.finefindus.eyedropper.Rb.metainfo.xml
+# RUBY files
+lib/eyedropper/global_shortcuts.rb
+lib/eyedropper/notation.rb
+lib/eyedropper/widgets/about_dialog.rb
+lib/eyedropper/widgets/color_format_row.rb
+lib/eyedropper/widgets/edit_sheet.rb
+lib/eyedropper/widgets/format_order_row.rb
+lib/eyedropper/widgets/history_item.rb
+lib/eyedropper/widgets/placeholder_page.rb
+lib/eyedropper/widgets/portal_error_page.rb
+lib/eyedropper/widgets/preferences_dialog.rb
+lib/eyedropper/window.rb

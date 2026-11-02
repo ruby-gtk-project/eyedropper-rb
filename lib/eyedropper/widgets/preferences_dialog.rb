@@ -5,14 +5,50 @@ module Eyedropper
     # The preferences dialog: formatting options, and the list that decides
     # which formats the main view shows and in what order.
     class PreferencesDialog
-      ALPHA_OPTIONS = ["None", "End", "Start"].freeze
-      RGB_OPTIONS = %w[Integer Decimal].freeze
+      extend I18n::Helpers
+      include I18n::Helpers
+
+      ALPHA_OPTIONS = [
+        c_("Alphavalue is not shown", "None"),
+        c_("Alphavalue is shown at the end", "End"),
+        c_("Alphavalue is shown at the start", "Start"),
+      ].freeze
+      RGB_OPTIONS = [
+        c_("RGB is format as integers (e.g. 127)", "Integer"),
+        c_("RGB is format as decimals (e.g. 0.1)", "Decimal"),
+      ].freeze
 
       NAME_SOURCES = [
-        [ColorNames::HTML, "Basic", "Basic web colors"],
-        [ColorNames::SVG, "Extended", "X11 and SVG color values"],
-        [ColorNames::GNOME, "GNOME Color Palette", "Colors for GNOME app icons and illustrations"],
-        [ColorNames::XKCD, "xkcd Color Survey", "954 RGB colors named by volunteers"],
+        [
+          ColorNames::HTML,
+          c_(
+            "Name of the basic color keyword set from https://www.w3.org/TR/css-color-3/#html4",
+            "Basic",
+          ),
+          _("Basic web colors"),
+        ],
+        [
+          ColorNames::SVG,
+          c_(
+            "Name of the extended color keyword set from https://www.w3.org/TR/css-color-3/#svg-color",
+            "Extended",
+          ),
+          _("X11 and SVG color values"),
+        ],
+        [
+          ColorNames::GNOME,
+          c_(
+            "Name of the color set from the GNOME color palette " \
+            "(https://developer.gnome.org/hig/reference/palette.html)",
+            "GNOME Color Palette",
+          ),
+          _("Colors for GNOME app icons and illustrations"),
+        ],
+        [
+          ColorNames::XKCD,
+          c_("Name of the color set from the xkcd color survey", "xkcd Color Survey"),
+          _("954 RGB colors named by volunteers"),
+        ],
       ].freeze
 
       # The rows currently in the order list, in display order.
@@ -64,36 +100,36 @@ module Eyedropper
 
       def general_page
         @general_page ||= Adwaita::PreferencesPage.new.tap do |page|
-          page.title = "General"
+          page.title = _("General")
         end
       end
 
       def formatting_group
         @formatting_group ||= Adwaita::PreferencesGroup.new.tap do |group|
-          group.title = "Formatting"
+          group.title = _("Formatting")
         end
       end
 
       def alpha_row
         @alpha_row ||= Adwaita::ComboRow.new.tap do |row|
-          row.title = "Alpha-Value Position"
-          row.subtitle = "Where the Alphavalue is positioned in the Hexstring"
+          row.title = _("Alpha-Value Position")
+          row.subtitle = _("Where the Alphavalue is positioned in the Hexstring")
           row.model = Gtk::StringList.new(ALPHA_OPTIONS)
         end
       end
 
       def rgb_row
         @rgb_row ||= Adwaita::ComboRow.new.tap do |row|
-          row.title = "RGB Notation"
-          row.subtitle = "Whether RGB values should be displayed as integers or decimals"
+          row.title = _("RGB Notation")
+          row.subtitle = _("Whether RGB values should be displayed as integers or decimals")
           row.model = Gtk::StringList.new(RGB_OPTIONS)
         end
       end
 
       def name_sources_row
         @name_sources_row ||= Adwaita::ActionRow.new.tap do |row|
-          row.title = "Name Sources"
-          row.subtitle = "Sources for displaying color names"
+          row.title = _("Name Sources")
+          row.subtitle = _("Sources for displaying color names")
           row.activatable = true
         end
       end
@@ -115,8 +151,8 @@ module Eyedropper
           1,
           0,
         ).tap do |row|
-          row.title = "Precision"
-          row.tooltip_text = "Precision"
+          row.title = _("Precision")
+          row.tooltip_text = _("Precision")
           row.numeric = true
           row.valign = :center
         end
@@ -124,15 +160,15 @@ module Eyedropper
 
       def formats_group
         @formats_group ||= Adwaita::PreferencesGroup.new.tap do |group|
-          group.title = "Color Formats"
-          group.description = "Customize the visible formats and in which order they are displayed"
+          group.title = _("Color Formats")
+          group.description = _("Customize the visible formats and in which order they are displayed")
         end
       end
 
       def reset_button
         @reset_button ||= Gtk::Button.new.tap do |widget|
           widget.icon_name = "edit-clear-symbolic"
-          widget.tooltip_text = "Reset Order"
+          widget.tooltip_text = c_("Tooltip of the button to reset the format order", "Reset Order")
           widget.add_css_class("flat")
         end
       end
@@ -147,7 +183,7 @@ module Eyedropper
       # The name-source switches live on their own subpage, reached from the
       # "Name Sources" row.
       def name_sources_page
-        @name_sources_page ||= Adwaita::NavigationPage.new(name_sources_toolbar, "Name Sources")
+        @name_sources_page ||= Adwaita::NavigationPage.new(name_sources_toolbar, _("Name Sources"))
       end
 
       def name_sources_toolbar

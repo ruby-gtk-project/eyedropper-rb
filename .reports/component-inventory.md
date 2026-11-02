@@ -31,7 +31,7 @@ the upstream widget tree; `partial` = exists with a named gap; `no` = absent.
 | 14 | `data/resources/style.css` | `data/style.css` | stylesheet | yes |
 | 15 | `data/com.github.finefindus.eyedropper.gschema.xml.in` | `lib/eyedropper/settings.rb`, `data/…Rb.gschema.xml` | settings schema | partial |
 | 16 | `data/resources/resources.gresource.xml` + `data/resources/icons/*` | `data/icons/hicolor/**`, `data/icons/shattered-picker.svg` | resources | yes (icon theme dir replaces GResource) |
-| 17 | `po/` (34 catalogues, `po/LINGUAS`) | — | translations | no |
+| 17 | `po/` (34 catalogues, `po/LINGUAS`) | `po/`, `lib/eyedropper/i18n.rb` | translations | yes |
 
 ---
 
@@ -246,6 +246,11 @@ Port: `lib/eyedropper/widgets/about_dialog.rb`, including the debug-info page.
 - `data/resources/style.css` is reproduced byte-for-class in `data/style.css`:
   `.title-header`, `.no-padding`, `.invisible`, `.shadow`, `.hue-slider
   trough`, `.saturation-slider trough`, `.value-slider trough`.
+- `po/` is shipped verbatim — `LINGUAS`, the template and all 34 catalogues —
+  and read at runtime by `lib/eyedropper/i18n.rb`, which parses the `.po` for
+  the environment's language instead of relying on a `msgfmt` build step.
+  `I18n::Helpers` gives the ported classes `_()` and `c_()` in place of
+  upstream's `gettext()` and blueprint's `_()` / `C_()`.
 - GResource is replaced by an installed icon theme under
   `data/icons/hicolor/**` plus `data/icons/shattered-picker.svg`; all six
   bundled symbolics are present.
@@ -254,17 +259,17 @@ Port: `lib/eyedropper/widgets/about_dialog.rb`, including the debug-info page.
 
 ## Gaps
 
-1. **`po/` is absent (17).** Upstream ships 34 catalogues listed in
-   `po/LINGUAS`; the port has no `po/` directory and the strings in `lib/` are
-   bare Ruby literals, so the app is English-only. Every heading above is a
-   translatable string upstream (several with `C_()` message contexts, e.g. the
-   picker and palette button tooltips and all four name-source titles).
-2. **GSettings keys `cie-illuminants` and `cie-standard-observer` (15).**
+1. **GSettings keys `cie-illuminants` and `cie-standard-observer` (15).**
    Present in the upstream schema, absent from `lib/eyedropper/settings.rb`
    `DEFAULTS` and from `data/…Rb.gschema.xml`. Neither has a UI control
    upstream either, so this is a schema gap rather than a missing component —
    but the CIE conversions that read them cannot be configured.
-3. **Parameterised window actions (2).** `win.show-toast` `(si)`,
+2. **Parameterised window actions (2).** `win.show-toast` `(si)`,
    `win.set-color` `s` and `win.remove-item` `s` exist upstream as GActions and
    in the port only as Ruby callbacks. In-app behaviour matches; external
    activation of those names does not.
+3. **Localised metadata (17).** The UI strings go through the catalogues, but
+   the `.desktop` and `.metainfo.xml` files carry only their source English.
+   Upstream merges translations into them with `msgfmt --desktop` / `--xml`
+   during the meson build; the port has no build step, so `Name[de]=` and
+   `<summary xml:lang="de">` are not generated.

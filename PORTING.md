@@ -105,6 +105,29 @@ percentages may carry a fractional part in every format (upstream's shared
 is rejected), and the format prefix is optional everywhere — which is what
 upstream's own `oklab`/`oklch` test vectors assume, though its parsers require it.
 
+## Translations
+
+Upstream compiles `po/*.po` with `msgfmt` during the meson build, installs the
+`.mo` files, and reads them through `gettextrs::gettext` and blueprint's `_()`
+and `C_()`. The port has no build step and no gettext gem, so
+`lib/eyedropper/i18n.rb` reads the shipped `.po` files directly: the language
+comes from `LANGUAGE` / `LC_ALL` / `LC_MESSAGES` / `LANG` (a `de_AT.UTF-8`
+asking for `de`, a priority list honoured left to right), the first language
+`po/LINGUAS` lists wins, and that one catalogue is parsed on first lookup.
+Fuzzy, obsolete, plural and untranslated entries are skipped, exactly as
+gettext would, and anything the catalogue misses falls back to the source
+string — which is why a 2023 catalogue like `po/de.po` still shows English for
+strings added since.
+
+`I18n::Helpers` supplies `_()` and `c_(context, msgid)` to the ported classes.
+Message contexts are the pot's, not the catalogues': several catalogues carry a
+stale `" Tooltip of the button to reset the format order"` with a leading
+space, which upstream's own `msgfmt` output ignores too.
+
+Translations the catalogues hold for the `.desktop` and `.metainfo.xml` files
+are not merged into them; that is a `msgfmt --desktop` / `--xml` build step the
+port has nowhere to run.
+
 ## Dropped settings keys
 
 `cie-illuminants` and `cie-standard-observer` are declared in upstream's schema

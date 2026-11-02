@@ -7,6 +7,7 @@ module Eyedropper
 end
 
 require_relative "eyedropper/config"
+require_relative "eyedropper/i18n"
 require_relative "eyedropper/alpha_position"
 require_relative "eyedropper/color"
 require_relative "eyedropper/parser"

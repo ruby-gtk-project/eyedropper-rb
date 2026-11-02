@@ -9,6 +9,8 @@ module Eyedropper
   # notation is one object holding all three, and the identifier is the string
   # the `format-order` and `visible-formats` settings already store.
   class Notation
+    extend I18n::Helpers
+
     attr_reader :identifier, :label, :copy_label
 
     def initialize(identifier, label, copy_label, formatter, parser)
@@ -60,8 +62,8 @@ module Eyedropper
 
     HEX = new(
       "hex",
-      "Hex Code",
-      "Copy Hex Code",
+      _("Hex Code"),
+      _("Copy Hex Code"),
       lambda do |color, options|
         red, green, blue, alpha = color.to_bytes.map { |byte| format("%02X", byte) }
         case options[:alpha_position]
@@ -76,7 +78,7 @@ module Eyedropper
     RGB = new(
       "rgb",
       "RGB",
-      "Copy RGB",
+      _("Copy RGB"),
       lambda do |color, options|
         red, green, blue = [color.red, color.green, color.blue].map do |component|
           if options[:rgb_decimal]
@@ -98,7 +100,7 @@ module Eyedropper
     HSL = new(
       "hsl",
       "HSL",
-      "Copy HSL",
+      _("Copy HSL"),
       lambda do |color, options|
         hue, saturation, lightness = color.to_hsl
         head = "#{hue.round}, #{Notation.percent(saturation)}%, #{Notation.percent(lightness)}%"
@@ -115,7 +117,7 @@ module Eyedropper
     HSV = new(
       "hsv",
       "HSV",
-      "Copy HSV",
+      _("Copy HSV"),
       lambda do |color, _options|
         hue, saturation, value = color.to_hsv
         "hsv(#{hue.round}, #{Notation.percent(saturation)}%, #{Notation.percent(value)}%)"
@@ -126,7 +128,7 @@ module Eyedropper
     CMYK = new(
       "cmyk",
       "CMYK",
-      "Copy CMYK",
+      _("Copy CMYK"),
       lambda do |color, _options|
         cyan, magenta, yellow, key = color.to_cmyk.map { |value| Notation.percent(value) }
         "cmyk(#{cyan}%, #{magenta}%, #{yellow}%, #{key}%)"
@@ -137,7 +139,7 @@ module Eyedropper
     XYZ = new(
       "xyz",
       "XYZ",
-      "Copy XYZ",
+      _("Copy XYZ"),
       lambda do |color, options|
         x, y, z = color.to_xyz.map { |value| Notation.digits(value, options[:precision]) }
         "XYZ(#{x}, #{y}, #{z})"
@@ -148,7 +150,7 @@ module Eyedropper
     CIELAB = new(
       "cielab",
       "CIELAB",
-      "Copy CIELAB",
+      _("Copy CIELAB"),
       lambda do |color, options|
         lightness, a_star, b_star = color.to_lab.map do |value|
           Notation.digits(value, options[:precision])
@@ -161,7 +163,7 @@ module Eyedropper
     HWB = new(
       "hwb",
       "HWB",
-      "Copy HWB",
+      _("Copy HWB"),
       lambda do |color, _options|
         hue, whiteness, blackness = color.to_hwb
         "hwb(#{hue.round}, #{Notation.percent(whiteness)}%, #{Notation.percent(blackness)}%)"
@@ -172,7 +174,7 @@ module Eyedropper
     HCL = new(
       "hcl",
       "CIELCh / HCL",
-      "Copy CIELCh / HCL",
+      _("Copy CIELCh / HCL"),
       lambda do |color, options|
         lightness, chroma, hue = color.to_lch.map do |value|
           Notation.digits(value, options[:precision])
@@ -185,7 +187,7 @@ module Eyedropper
     LMS = new(
       "lms",
       "LMS",
-      "Copy LMS",
+      _("Copy LMS"),
       lambda do |color, options|
         long, medium, short = color.to_lms.map { |value| Notation.digits(value, options[:precision]) }
         "L: #{long}, M: #{medium}, S: #{short}"
@@ -196,7 +198,7 @@ module Eyedropper
     HUNTERLAB = new(
       "hunterlab",
       "Hunter Lab",
-      "Copy Hunter Lab",
+      _("Copy Hunter Lab"),
       lambda do |color, options|
         lightness, a_star, b_star = color.to_hunter_lab.map do |value|
           Notation.digits(value, options[:precision])
@@ -209,7 +211,7 @@ module Eyedropper
     OKLAB = new(
       "oklab",
       "Oklab",
-      "Copy Oklab",
+      _("Copy Oklab"),
       lambda do |color, options|
         lightness, a_star, b_star = color.to_oklab
         head = "#{Notation.percent(lightness)}% #{Notation.digits(a_star, options[:precision])} " \
@@ -227,7 +229,7 @@ module Eyedropper
     OKLCH = new(
       "oklch",
       "Oklch",
-      "Copy Oklch",
+      _("Copy Oklch"),
       lambda do |color, options|
         lightness, chroma, hue = color.to_oklch
         head = "#{Notation.percent(lightness)}% #{Notation.digits(chroma, options[:precision])} " \
@@ -244,10 +246,10 @@ module Eyedropper
 
     NAME = new(
       "name",
-      "Name",
-      "Copy Name",
+      _("Name"),
+      _("Copy Name"),
       lambda do |color, options|
-        ColorNames.name(color, options[:name_sources]) || "Not named"
+        ColorNames.name(color, options[:name_sources]) || _("Not named")
       end,
       ->(text, sources) { ColorNames.color(text, sources) },
     )

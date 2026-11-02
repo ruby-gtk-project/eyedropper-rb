@@ -5,21 +5,29 @@ module Eyedropper
     # The about dialog, including the debug-info page GNOME apps are expected
     # to carry so a bug report can name the display server and library versions.
     module AboutDialog
+      extend I18n::Helpers
+
       FEATURES = [
-        "Pick a Color",
-        "Edit the viewed color in a simple HSL editor",
-        "Enter a color in various formats",
-        "Convert colors into other formats such as Hex, RGB, HSV, HSL, CMYK, XYZ, CIE-Lab…",
+        _("Pick a Color"),
+        _("Edit the viewed color in a simple HSL editor"),
+        _("Enter a color in various formats"),
+        _("Convert colors into other formats such as Hex, RGB, HSV, HSL, CMYK, XYZ, CIE-Lab…"),
       ].freeze
+
+      # Translators fill this in through the catalogue; every catalogue that
+      # leaves it untranslated gets no credits page rather than a page naming
+      # the placeholder.
+      TRANSLATOR_CREDITS_MSGID = "translator-credits"
 
       def self.show(parent)
         Adwaita::AboutDialog.new.tap do |dialog|
           dialog.application_icon = Config::APP_ID
-          dialog.application_name = Config::APP_NAME
+          dialog.application_name = _(Config::APP_NAME)
           dialog.developer_name = "FineFindus"
           dialog.developers = Config::DEVELOPERS
           dialog.designers = Config::DESIGNERS
           dialog.artists = Config::ARTISTS
+          dialog.translator_credits = translator_credits
           dialog.license_type = Gtk::License::GPL_3_0
           dialog.version = Config::VERSION
           dialog.website = Config::WEBSITE
@@ -32,15 +40,24 @@ module Eyedropper
         end
       end
 
+      def self.translator_credits
+        _(TRANSLATOR_CREDITS_MSGID).then do |credits|
+          case credits
+          when TRANSLATOR_CREDITS_MSGID then ""
+          else credits
+          end
+        end
+      end
+
       # Kept in step with the metainfo file, which is what the software centre
       # shows for the same app.
       def self.details
         lines = [
-          "<b>Pick and format colors</b>",
+          "<b>#{_('Pick and format colors')}</b>",
           "",
-          "Enter or pick a color and view it in different formats.",
+          _("Enter or pick a color and view it in different formats."),
           "",
-          "<b>Features</b>",
+          "<b>#{_('Features')}</b>",
           "",
         ]
         FEATURES.each { |feature| lines << "- #{feature}" }

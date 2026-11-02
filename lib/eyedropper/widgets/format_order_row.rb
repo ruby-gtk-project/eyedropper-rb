@@ -10,6 +10,8 @@ module Eyedropper
     # object, because a Ruby object cannot cross a GdkContentProvider; the
     # identifier is enough for the list to find both ends of the move.
     class FormatOrderRow
+      include I18n::Helpers
+
       DRAG_NAME = "preferences-drag-format"
 
       attr_reader :notation
@@ -94,8 +96,8 @@ module Eyedropper
       # The same two moves as the drag handle, reachable from the keyboard.
       def menu_model
         @menu_model ||= Gio::Menu.new.tap do |menu|
-          menu.append("Move Up", "row.move-up")
-          menu.append("Move Down", "row.move-down")
+          menu.append(_("Move Up"), "row.move-up")
+          menu.append(_("Move Down"), "row.move-down")
         end
       end
 

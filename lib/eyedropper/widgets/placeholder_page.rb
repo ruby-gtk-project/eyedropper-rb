@@ -4,6 +4,8 @@ module Eyedropper
   module Widgets
     # The empty state, shown until a color has been picked or entered.
     class PlaceholderPage
+      include I18n::Helpers
+
       FLASH_MS = 350
 
       # Rotated so the empty state hints at more than one accepted syntax.
@@ -42,8 +44,8 @@ module Eyedropper
       def status_page
         @status_page ||= Adwaita::StatusPage.new.tap do |page|
           page.icon_name = "color-select-symbolic"
-          page.title = "No Color"
-          page.description = "Select or enter a color to get started"
+          page.title = _("No Color")
+          page.description = _("Select or enter a color to get started")
         end
       end
 
@@ -61,7 +63,7 @@ module Eyedropper
       end
 
       def view_button
-        @view_button ||= Gtk::Button.new(label: "View").tap do |widget|
+        @view_button ||= Gtk::Button.new(label: _("View")).tap do |widget|
           widget.halign = :center
           widget.sensitive = false
           widget.add_css_class("pill")

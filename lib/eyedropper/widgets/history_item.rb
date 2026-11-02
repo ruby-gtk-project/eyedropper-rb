@@ -10,6 +10,8 @@ module Eyedropper
     # so this port puts a Gtk::DrawingArea inside a plain button and paints in
     # its draw function instead — same picture, no GType registration.
     class HistoryItem
+      include I18n::Helpers
+
       SWATCH_WIDTH = 36
       SWATCH_HEIGHT = 34
       CORNER_RADIUS = 6
@@ -99,7 +101,7 @@ module Eyedropper
 
       def menu_model
         @menu_model ||= Gio::Menu.new.tap do |menu|
-          menu.append("Remove", "history.remove")
+          menu.append(_("Remove"), "history.remove")
         end
       end
 

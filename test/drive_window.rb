@@ -9,6 +9,10 @@ require "tmpdir"
 # silently rolled back to the schema default a moment after it appears to
 # succeed. The memory backend keeps writes in-process, which is both what the
 # test wants to observe and what keeps the run off the user's real settings.
+# The checks below name the port's source English, so the drive pins the
+# message locale instead of inheriting the operator's — exactly as gettext
+# reads a C locale.
+ENV["LC_ALL"] = "C"
 ENV["GSETTINGS_BACKEND"] = "memory"
 ENV["XDG_CONFIG_HOME"] = Dir.mktmpdir
 ENV["XDG_DATA_DIRS"] = [
