@@ -177,13 +177,30 @@
             pkgs.glib
             pkgs.adwaita-icon-theme
             pkgs.gsettings-desktop-schemas
+            # The spec runner. The gems the full development bundle needs are
+            # not in this shell — it carries the app's runtime closure — but
+            # the suite is plain RSpec, so this is enough to run it.
+            pkgs.rubyPackages_3_3.rspec
+            # `exe/eyedropper-rb` has to be runnable from the shell, and this
+            # machine may well have no display server at all, so the shell
+            # carries one it can start itself: `xvfb-run ruby bin/eyedropper-rb`
+            # both launches the app and is how the test/drive_*.rb scripts run.
+            pkgs.xvfb-run
+            # The drive scripts type into the running app to prove key capture
+            # is wired to the window; see tally-rb's flake.nix for why this has
+            # to come from the X server rather than a forged Gdk key event.
+            pkgs.xdotool
           ] ++ gtkStack;
 
           # Icons, GSettings schemas and the GTK portal all resolve through
           # XDG_DATA_DIRS; without these the window opens with blank icons and
-          # Gio::Settings aborts on the app's own schema.
+          # Gio::Settings aborts on the app's own schema. RUBYLIB is what makes
+          # `ruby bin/eyedropper-rb` work from a checkout: the launcher's
+          # `require "eyedropper"` otherwise only resolves against an installed
+          # gem.
           shellHook = ''
-            export GI_TYPELIB_PATH="${typelibPath}"
+            export GI_TYPELIB_PATH="${typelibPath}''${GI_TYPELIB_PATH:+:$GI_TYPELIB_PATH}"
+            export RUBYLIB="$PWD/lib''${RUBYLIB:+:$RUBYLIB}"
             # `gdbus` reads the portal signals the bindings cannot; see PORTING.md.
             export PATH="${pkgs.glib.bin}/bin:$PATH"
             export GDK_PIXBUF_MODULE_FILE="${pkgs.librsvg}/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache"
@@ -191,7 +208,9 @@
             unset BUNDLE_GEMFILE BUNDLE_FROZEN BUNDLE_PATH
             echo "eyedropper-rb devshell — ruby $(ruby -e 'print RUBY_VERSION')"
             echo "  rake schema        compile the GSettings schema into build/share"
-            echo "  ./bin/eyedropper-rb   run the app"
+            echo "  xvfb-run ruby ./bin/eyedropper-rb   run the app"
+            echo "  xvfb-run ruby test/drive_window.rb  drive the main window"
+            echo "  ruby -e 'require \"rspec/core\"; exit RSpec::Core::Runner.run([\"--format\", \"progress\", \"spec\"])'"
             echo "  rake               test + lint"
           '';
         };
