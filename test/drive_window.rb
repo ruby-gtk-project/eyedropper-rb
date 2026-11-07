@@ -39,6 +39,21 @@ GtkDriver.drive(Eyedropper::App.new, shots: SHOTS, interval: 500) do |d, app|
     d.shot("01-placeholder")
   end
 
+  d.step("the shipped icon set actually resolves through the real icon theme") do
+    # `install_icons` only adds a search path; `has_icon?` is what proves the
+    # theme actually found a file there by name, on the real display this
+    # window presents on, not a freshly constructed theme pointed at the
+    # directory by hand.
+    theme = Gtk::IconTheme.get_for_display(window.window.display)
+    d.check("the color-picker icon resolves") { theme.has_icon?("color-select-symbolic") }
+    d.check("the app's own symbolic icon resolves") do
+      theme.has_icon?("com.github.finefindus.eyedropper.Rb-symbolic")
+    end
+    d.check("the drag-handle icon used by format-order rows resolves") do
+      theme.has_icon?("list-drag-handle-symbolic")
+    end
+  end
+
   d.step("a bad color in the empty state is refused") do
     window.placeholder_page.entry.text = "definitely not a color"
     window.placeholder_page.view_button.signal_emit("clicked")
@@ -159,6 +174,69 @@ GtkDriver.drive(Eyedropper::App.new, shots: SHOTS, interval: 500) do |d, app|
       (window.edit_sheet.lightness_scale.value - (lightness * 100)).abs < 1.0
     end
     d.shot("06-edit-sheet")
+  end
+
+  d.step("the hue slider's CSS gradient actually renders, not just a flat trough") do
+    # Rendering the slider and reading real pixels back is the only way to
+    # confirm `.hue-slider trough`'s gradient from data/style.css took effect —
+    # a structural read of the CSS file or the widget's css_classes would pass
+    # even if the stylesheet had never been loaded for this display.
+    path = d.shot("17-hue-slider-only", window.edit_sheet.hue_scale)
+    d.check("the hue slider rendered to a file") { !path.nil? }
+
+    path.then do |shot_path|
+      pixbuf = GdkPixbuf::Pixbuf.new(file: shot_path)
+      rowstride = pixbuf.rowstride
+      channels = pixbuf.n_channels
+      bytes = pixbuf.pixel_bytes.to_s
+      sample = lambda do |x, y|
+        offset = (y * rowstride) + (x * channels)
+        bytes.byteslice(offset, channels).bytes
+      end
+      mid_y = pixbuf.height / 2
+      left = sample.call(3, mid_y)
+      # The gradient's 33.33% stop is pure green; a quarter of the way across
+      # a 0..360 hue trough lands well past red and into green/yellow.
+      quarter = sample.call(pixbuf.width / 4, mid_y)
+
+      d.check("left edge of the trough reads red, not grey") do
+        left[0] > 150 && left[1] < 100 && left[2] < 100
+      end
+      d.check("a quarter across the trough has shifted away from red") do
+        quarter[0] != left[0] || quarter[1] != left[1] || quarter[2] != left[2]
+      end
+      d.check("a quarter across the trough is not still red-dominant") do
+        quarter[1] > left[1] || quarter[2] > left[2]
+      end
+    end
+  end
+
+  d.step("the primary menu's real Gio::Menu model opens and lists its items") do
+    popover = window.menu_button.popover
+    popover.popup
+    d.check("the popover actually opened") { popover.visible? }
+
+    menu = window.primary_menu
+    d.check("two sections") { menu.n_items == 2 }
+
+    history_section = menu.get_item_link(0, "section")
+    app_section = menu.get_item_link(1, "section")
+    string_type = GLib::VariantType.new("s")
+
+    d.check("history section has clear-history and random-color, in order") do
+      history_section.get_item_attribute_value(0, "action", string_type) == "app.clear-history" &&
+        history_section.get_item_attribute_value(1, "action", string_type) == "app.random-color"
+    end
+    d.check("app section has preferences and about, in order") do
+      app_section.get_item_attribute_value(0, "action", string_type) == "app.preferences" &&
+        app_section.get_item_attribute_value(1, "action", string_type) == "app.about"
+    end
+    d.check("the labels are the real translatable strings, not placeholders") do
+      history_section.get_item_attribute_value(0, "label", string_type) == "_Clear History" &&
+        app_section.get_item_attribute_value(1, "label", string_type) == "_About Eyedropper"
+    end
+
+    popover.popdown
   end
 
   d.step("moving a slider and applying adopts the edited color") do
