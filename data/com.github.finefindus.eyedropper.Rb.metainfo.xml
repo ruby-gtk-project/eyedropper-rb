@@ -38,6 +38,37 @@
       <caption>Status page stating to pick a color to get started</caption>
     </screenshot>
   </screenshots>
-  <launchable type="desktop-id">com.github.finefindus.eyedropper.Rb.desktop</launchable>
   <url type="homepage">https://apps.gnome.org/Eyedropper</url>
+  <url type="bugtracker">https://github.com/FineFindus/eyedropper/issues</url>
+  <url type="vcs-browser">https://github.com/FineFindus/eyedropper</url>
+  <url type="contribute">https://github.com/FineFindus/eyedropper#contributing</url>
+  <url type="translate">https://github.com/FineFindus/eyedropper#translation</url>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="2.2.1" date="2026-03-29">
+      <description translatable="no">
+        <p>Ruby port of the Rust 2.2.1 release, fixing an issue with the italian translation.</p>
+      </description>
+    </release>
+  </releases>
+  <kudos>
+    <!--
+       GNOME Software kudos:
+       https://gitlab.gnome.org/GNOME/gnome-software/-/blob/main/doc/kudos.md
+     -->
+    <kudo>SearchProvider</kudo>
+    <kudo>ModernToolkit</kudo>
+    <kudo>HiDpiIcon</kudo>
+  </kudos>
+  <translation type="gettext">eyedropper-rb</translation>
+  <launchable type="desktop-id">com.github.finefindus.eyedropper.Rb.desktop</launchable>
+
+  <branding>
+      <color type="primary" scheme_preference="light">#78D9F7</color>
+      <color type="primary" scheme_preference="dark">#085367</color>
+  </branding>
+
+  <custom>
+    <value key="GnomeSoftware::key-colors">[(120, 217, 247)]</value>
+  </custom>
 </component>
