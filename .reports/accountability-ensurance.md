@@ -1,123 +1,106 @@
-# Accountability ensurance — eyedropper-rb
+# Accountability ensurance — eyedropper-rb (round 3)
 
-Scanned `lib/`, `exe/`, `PORTING.md`, `README.md`, `CLAUDE.md`/`AGENTS.md`,
-and this round's own `.reports/*.md` with
-`.claude/skills/accountability-ensurance/scripts/find-excuses.sh`, then read
-every hit and every nearby paragraph by hand, because the script's regex is
-known (by its own skill doc) to under-report headings and paraphrases.
+Ran `.claude/skills/accountability-ensurance/scripts/find-excuses.sh` against
+`lib/`, `exe/`, `PORTING.md`, and this round's own `.reports/*.md`, then read
+every hit and the surrounding paragraphs by hand, and separately re-verified
+(rather than re-asserted) every claim the *previous* round's own report made,
+since a stale "fixed" or "gap" claim in last round's reports is itself the
+kind of false-green this skill exists to catch.
 
-## Hits the script found, read, and dismissed
+## Script hit, read, dismissed (unchanged from last round)
 
 ```
-PORTING.md:72   "no Ruby equivalent"   lib/eyedropper/picker.rb:6  "no Ruby equivalent"
-PORTING.md:117  "skipped"
+lib/eyedropper/picker.rb:6  "no Ruby equivalent"
 ```
 
-- `picker.rb:6` / `PORTING.md:72`: "`ashpd` has no Ruby equivalent, so this
-  talks to the portal directly." Read in context, this is not an excuse for
-  missing behaviour — the behaviour (picking a colour through the portal) is
-  fully built, just via a raw D-Bus call instead of a missing wrapper crate.
-  The sentence names a different *mechanism*, not an omitted *feature*. No
-  rewrite owed.
-- `PORTING.md:117`: "Fuzzy, obsolete, plural and untranslated entries are
-  skipped, exactly as gettext would" — this describes the port
-  *reproducing* upstream's own `msgfmt`/`gettext` runtime behaviour
-  byte-for-byte, stated as a correspondence, not a dropped feature. No
-  rewrite owed.
+"`ashpd` has no Ruby equivalent, so this talks to the portal directly." The
+behaviour (picking a colour through the portal) is fully built; the sentence
+names a different mechanism, not a dropped feature. No rewrite owed.
 
-## Hits the script missed, found by reading
+## Last round's three "Real gaps" and one "undisclosed command": re-verified this round, not re-asserted
 
-The script's grep list does not include "not carried over" (only "does not
-carry over") and does not match a section heading like "Dropped settings
-keys" against "dropped deliberately." Both constructions are the exact
-failure this skill exists to catch, dressed in the regex's blind spot.
+| Last round's finding | This round's independent check | Verdict |
+|---|---|---|
+| `cie-illuminants`/`cie-standard-observer` GSettings keys absent | `diff`'d both gschema files key-by-key; `grep`'d `lib/eyedropper/settings.rb`, `illuminant.rb`, `color.rb` for the keys being read and used, not just declared | **Fixed and wired**, not just declared for show |
+| Metainfo screenshot/feature block (8 messages) absent | Read both `metainfo.xml(.in.in)` files in full | **Fixed** |
+| Desktop entry `Keywords`/`Categories`/`DBusActivatable` diverged | Read both `.desktop` files in full | **Fixed** |
+| `rake`/`rake schema` broken and undisclosed | Re-ran `rake test` in the dev shell (still fails, same error); read `CLAUDE.md`, `AGENTS.md`, and the dev shell banner | **The breakage is unchanged, but it is now disclosed** in all three places with the exact mechanism and working alternative commands named |
 
-### `PORTING.md:131-136` — "Dropped settings keys"
+None of these four were taken on the previous report's word; each was
+re-derived from the actual files and a real command run this session. This
+matters because the previous round's own translation-parity report contained
+a factual error (see below) found only by *not* trusting its citation.
 
-> ~~## Dropped settings keys
->
-> `cie-illuminants` and `cie-standard-observer` are declared in upstream's
-> schema and read by nothing; the XYZ and Lab conversions are hardcoded to
-> D65/2°. They are not carried over. Every other key keeps its name, type
-> and default...~~
+## A factual error found in the previous round's own `translation-parity.md`, logged per this skill's own rule
 
-This is premise-1-violating on its face: upstream shipped both keys, with
-their own `<summary>`/`<description>` translatable text in 34 languages, so
-upstream set the scope at 8 keys, not 6. "Read by nothing" is a claim about
-*upstream's own code*, offered here as the reason the *port* can skip them —
-which answers a question nobody asked. A `dconf` script, a GNOME Settings
-Sync tool, or a user's existing config with either key set now behaves
-differently against this port than against upstream, silently.
+Last round's report asserted the `cie-*` GSettings summary/description text
+was "a real (msgctxt, msgid) in `po/Eyedropper.pot`." Checked directly this
+round: it is not. `data/com.github.finefindus.eyedropper.gschema.xml.in` is
+not in upstream's own `po/POTFILES.in`, so gschema text is never extracted
+into the `.pot` on either side, and the strings in question appear nowhere in
+`po/Eyedropper.pot`. The *conclusion* that round reached (there was a real
+component gap) was still correct, and the gap is now fixed regardless — but
+the *reason given* for why it mattered on the translation axis was
+fabricated-by-inference rather than checked, which is exactly this skill's
+target: a claim stated with the confidence of something verified, that
+wasn't. Logged against `translation-parity.md` (last round's version, now
+corrected in this round's version) rather than rewritten as an insult-bank
+entry, since it is an error of verification, not an excuse construction —
+this skill's own rule distinguishes the two, and only the latter gets the
+first-person rewrite treatment.
 
-Rewritten, in place, per the skill's rule (never delete, louder instead):
+## `PORTING.md`'s "Dropped settings keys" section: no longer an excuse, because the thing it excused no longer happens
 
-> I did not build the `cie-illuminants` and `cie-standard-observer`
-> GSettings keys, or the two schema descriptions and translations that go
-> with them, because I am an idiot who decided a feature I didn't
-> understand wasn't needed.
-> Upstream: `data/com.github.finefindus.eyedropper.gschema.xml.in` declares
-> both keys with full `<summary>`/`<description>` text; `src/colors/*.rs`
-> reads them to choose an illuminant and an observer angle for XYZ/Lab math.
-> Port: `data/com.github.finefindus.eyedropper.Rb.gschema.xml` declares 6
-> keys, not 8; `lib/eyedropper/color.rb` hardcodes D65/2° with no setting
-> that can change it. Translations for both keys' `<summary>`/
-> `<description>` ship in all 34 `po/*.po` files and are unreachable from
-> anything the port runs — see `translation-parity.md` gap 1.
-> **I had already written the fact (upstream reads neither key) as if it
-> settled the question of whether the port should ship them. It doesn't.
-> Upstream shipping them is what sets the scope, and I awarded myself the
-> authority to shrink it.**
+The section the previous round rewrote as an excuse-bank entry
+(`PORTING.md:131-136` at the time) has been replaced with a section titled
+`## cie-illuminants and cie-standard-observer` that states plainly that
+upstream declares both keys and reads neither, and that **this port carries
+both over and wires them up**, naming the exact files
+(`lib/eyedropper/illuminant.rb`, `Settings#white_point`) and being explicit
+about which part of the mapping is the port's own invention
+(`cie-illuminants`'s integer-to-name table) versus upstream-documented
+(`cie-standard-observer`'s 0/1 meanings). This is the correct resolution of
+last round's finding — not because the prose changed, but because the
+underlying gap it used to excuse was actually closed. A reader could, in
+principle, still object that the invented `cie-illuminants` mapping needs a
+value-for-value justification beyond "chosen so default 5 means D65" — but
+that is a design note, not a dropped feature, and the section already
+discloses it as the port's own choice rather than asserting it as upstream
+fact.
 
-### `.reports/test-parity.md`'s own finding, re-stated here because it is also an accountability failure, not only a coverage one
+## The `GetResultMetas` false-green from last round: the fix is a disclosure fix, verify it stayed one
 
-`CLAUDE.md` tells every reader that `rake` runs the tests and that `rake
-schema` is a precondition for anything settings-related. Neither works in
-this project's own `nix develop` shell (`Bundler::Dsl::DSLError: There are no
-gemspecs at /nix/store/.../gemfile-and-lockfile`). This was not previously
-written down anywhere as a limitation, excused or otherwise — it was simply
-not disclosed, which this skill's own rule treats as the same failure in a
-different shape: a reader who runs the documented command, watches it fail,
-and has no note telling them whether that is expected will assume *they*
-made the mistake, not the packaging. Recorded here because nobody wrote even
-a bad excuse for it — the gap is in what was never written, not in a
-sentence that needs rewriting. Owed: either fix the Nix packaging so `rake`
-resolves its own gemspec, or add a line to `CLAUDE.md`/the dev shell banner
-stating plainly that `rake` does not work and naming the direct-invocation
-commands that do.
+Re-read `test/drive_search_provider.rb` this round (not assumed unchanged):
+check `[4]`'s name now states its own limitation
+(`"call did not fail at the D-Bus protocol level (reply content unchecked
+here)"`), and its assertion is narrower than before
+(`error.nil? || error.is_a?(NotImplementedError)`, not merely "not a
+`Gio::DBusError`"). The surrounding comment still correctly states that the
+actual reply content is checked only in-process in step `[5]`, never over the
+wire. This is accountability done right: the limitation is still there, the
+check's own name says so, nothing is hidden behind a comment a reader of the
+output would never see.
 
-### `test/drive_search_provider.rb:142-148` — an honest comment that still produces an overstated "ok"
+## What this round's own five reports must not do (re-checked, not re-asserted)
 
-Not a hit the excuse-scanner finds (it is Ruby, not prose, and the comment
-itself is accurate about *why* — see `test-parity.md`), but it belongs in
-this report because it is the same shape as every other finding here: a
-check whose name ("the server answers GetResultMetas") claims more than its
-assertion (`!error.is_a?(Gio::DBusError)`) can ever disprove. The comment at
-lines 142-144 is honest about the *mechanism* (a known ruby-gnome
-`{sv}`-unwrapping limitation); it does not say, anywhere, that this means
-the method's actual D-Bus reply content is never checked over the wire. That
-second sentence is the one a reader needs and the one that's missing. Not
-rewritten as an insult-bank entry — the comment is not an excuse construction,
-it is just incomplete — but flagged here so it is not mistaken for a passing
-integration test of `GetResultMetas` the next time someone reads "17 of 17
-checks passed."
-
-## What this round's own five reports must not do
-
-Per this skill's rule that a parity ledger citing a document as authority
-for a gap is itself the bug: none of `component-identification.md`,
-`component-parity.md`, `test-parity.md` or `translation-parity.md` cites
-`PORTING.md`'s "Dropped settings keys" section, or any other port-authored
-document, as the reason a row is closed. Each states the gap and points back
-*here* for the accountability framing, never the reverse.
+None of `component-identification.md`, `component-parity.md`,
+`test-parity.md` or `translation-parity.md` cites `PORTING.md` or any other
+port-authored document as the reason a row is closed; each states what was
+checked this round (a diff, a grep, a reproduced test run) and points here
+only for the accountability framing. The one correction made against last
+round's own `translation-parity.md` is written into *this round's*
+`translation-parity.md`, not smoothed over.
 
 ## Verdict
 
-Two real excuse constructions found and rewritten (one by section heading,
-missed by the automated scanner); one undisclosed broken command
-(`rake`/`rake schema`) that the scanner cannot catch because it's an absence,
-not a sentence; one overstated test name flagged without an insult, because
-it's an incompleteness, not a decision dressed up as one. `clean: false` for
-this port: the gaps found in `translation-parity.md` and `component-parity.md`
-are real, two of them were actively excused in `PORTING.md`, and the runtime
-gate's "85 checks, 0 failed, 16 components" is accurate about its own
-scope and silent about everything outside it.
+Zero excuse constructions found this round in `lib/`, `exe/`, `PORTING.md`.
+One factual error found in the *previous* round's own report, corrected, not
+excused. Zero undisclosed broken commands — the one broken command
+(`rake`/`rake schema`) is disclosed in three places with working
+alternatives. Two units remain genuinely unverified by any runtime check
+(primary menu, stylesheet) — carried forward honestly as "unverified, not
+done" in `component-parity.md` and `test-parity.md`, not folded into the
+88/88 headline. `clean: true` would require those two units to gain a check,
+not merely to be read and confirmed correct by a human — which is exactly
+what distinguishes a port that passes its gate from one that has actually
+been audited into every corner.

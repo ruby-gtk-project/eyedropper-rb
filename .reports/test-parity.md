@@ -1,154 +1,112 @@
-# Test parity — eyedropper-rb
+# Test parity — eyedropper-rb (round 3)
 
 | | |
 |---|---|
-| Upstream | `origin/main` |
-| Port | `ruby` @ `b72f734` |
-| Upstream tests (active `#[test]` fns) | 14 |
-| Upstream tests disabled in upstream's own source | 4 (`src/colors/parser.rs:179-230`, commented out along with their `#[cfg(test)] mod`) |
-| Ported (named, 1:1) | 12 |
-| Ported but merged 2:1 (bijection violated) | 2 pairs → 2 port tests stand in for 4 upstream tests |
-| Gaps | 0 properties, 2 bijection violations |
-| Test command that actually works | `xvfb-run ruby test/test_color.rb` (direct), **not** `rake test` |
+| Upstream | `origin/main` @ `9c480cb` |
+| Port | `ruby` @ `9d03426` |
+| Upstream tests (active `#[test]` fns) | 14, all in `src/colors/parser.rs` (confirmed again: `git grep '#\[test\]' origin/main -- src/` returns only this file) |
+| Ported 1:1 | 12 |
+| Ported but merged 2:1 | 2 pairs → 2 port tests stand in for 4 upstream tests (unchanged from last round) |
+| Documented entry point that works | now **disclosed as broken**, with working alternatives named — see below |
 
-## The suite does not run through its documented entry point
+## The suite still does not run through `rake`, but this is no longer undisclosed
 
-`CLAUDE.md` and the dev shell banner both point at `rake` (`rake` = "test +
-lint"; `rake schema` is a stated precondition). Both are broken in the
-project's own `nix develop` shell this session:
+Reproduced this round, same failure as before:
 
 ```
 $ nix develop --command xvfb-run -a rake test
-.../bundler/dsl.rb:88:in `gemspec': There are no gemspecs at
-/nix/store/sp0vbwky77h33rqizma819iklqc1b9h3-gemfile-and-lockfile.
-Bundler cannot continue.
+.../bundler-2.7.2/lib/bundler/source/git/git_proxy.rb:367: The git source
+https://github.com/pboling/rubocop-packaging.git is not yet checked out.
 ```
 
-Same failure for `rake schema` alone — rake cannot even boot far enough to
-reach a task name, because `bundler/gem_tasks` evaluates the packaged
-`Gemfile` (a Nix-substituted copy under `/nix/store/...-gemfile-and-lockfile`)
-and that copy's `gemspec` directive finds no `.gemspec` file in the same
-store path. This is a packaging defect in `flake.nix`/`gemset.nix`, not a
-Ruby bug, but it means: **the command this port's own documentation names as
-how to run its tests does not run its tests.** Every number below was
-produced by invoking the individual test/drive files directly
-(`ruby test/test_color.rb`, etc.), which is not the documented path and is
-not what a CI job running `rake` would do — such a job fails at `bundle
-install`/`gemspec` before a single assertion runs.
+The dev shell banner itself now prints, unprompted:
 
-This is logged again in `accountability-ensurance.md`: nothing in `PORTING.md`
-or the dev shell banner discloses that `rake` is non-functional.
+```
+NOTE: 'rake'/'rake schema' still fail here — gemfiles/modular/style.gemfile
+      pulls rubocop-packaging from a github: source this sandbox has no
+      network to fetch; see AGENTS.md. Use the commands below directly.
+```
 
-## Upstream census
+and `CLAUDE.md`/`AGENTS.md` both carry a full paragraph explaining the exact
+Nix/Bundler mechanism and naming every direct command to use instead. This
+closes the accountability finding from the previous round
+(`accountability-ensurance.md` previously: "nobody wrote even a bad excuse
+for it — the gap is in what was never written"). The underlying packaging
+defect is **still not fixed** — `rake` and `rake schema` still do not run —
+but it is now a disclosed limitation with a working workaround, not a silent
+trap. Recorded here as: documentation gap closed, packaging defect still
+open.
 
-Censused by hand from `src/colors/parser.rs` (the only upstream file with
-inline tests — confirmed: `git grep '#\[test\]' origin/main -- src/` returns
-only this file).
+## Suite runs reproduced this round, via the disclosed direct commands
 
-| # | Upstream test | Module | Purpose |
-|---|---|---|---|
-| 1 | `it_parses_basic` | `parse_rgb` | `rgb(...)`/`rgba(...)` basic form |
-| 2 | `it_parses_percent` | `parse_rgb` | percentage components in `rgb()` |
-| 3 | `it_parses_basic` | `parse_hsl` | `hsl()`/`hsla()` basic form |
-| 4 | `it_works_with_deg` | `parse_hsl` | hue suffixed `deg` |
-| 5 | `it_parses` | `parse_hsv` | `hsv()` round trip |
-| 6 | `it_parses` | `parse_cmyk` | `cmyk()` round trip |
-| 7 | `it_parses` | `parse_xyz` | `XYZ(...)` round trip |
-| 8 | `it_parses` | `parse_cie_lab` | `lab()` round trip |
-| 9 | `it_parses` | `parse_hwb` | `hwb()` round trip |
-| 10 | `it_parses_lch` | `parse_lch` | `lch()` round trip |
-| 11 | `it_parses` | `parse_lms` | LMS triplet round trip |
-| 12 | `parse_hunter_lab` | `tests` | Hunter Lab round trip |
-| 13 | `parses_oklab` | `parse_oklab` | `oklab()` round trip |
-| 14 | `parses_oklch` | `parse_oklch` | `oklch()` round trip |
+| Command | Result |
+|---|---|
+| `xvfb-run ruby test/test_color.rb` | 21 runs, 280 assertions, 0 failures, 0 errors, 0 skips |
+| `xvfb-run ruby test/test_i18n.rb` | 12 runs, 65 assertions, 0 failures, 0 errors, 0 skips |
+| `xvfb-run ruby test/drive_window.rb` | 55 of 55 checks passed, DRIVE OK |
+| `xvfb-run ruby test/drive_search_provider.rb` | 17 of 17 checks passed, SEARCH PROVIDER OK |
+| `xvfb-run ruby test/drive_portals.rb` | 16 of 16 checks passed, PORTALS OK |
 
-Disabled upstream (not counted, not run by upstream's own suite, listed so a
-re-enable on either side is noticed): `it_parse_hex_without_alpha`,
-`it_parse_hex_with_alpha_start`, `it_parse_hex_with_alpha_end`,
-`success_with_whitespace`, all commented out at `src/colors/parser.rs:179-230`
-together with their `#[cfg(test)]`.
+55 + 17 + 16 = **88 checks, 0 failed** — matches the round's stated gate
+exactly, reproduced independently rather than taken on faith.
+`test_color.rb`'s run count (21) is higher than the 19 recorded last round;
+not chased further here since the upstream-to-port bijection table below was
+re-verified by reading both sides' test names directly and is unchanged — the
+extra runs are additional self-authored coverage, not a change to which
+upstream tests have a port counterpart.
 
-## Mapping to the port
-
-`test/test_color.rb`, run this session: `19 runs, 275 assertions, 0 failures,
-0 errors, 0 skips`.
+## Upstream-to-port test bijection — unchanged from last round, re-verified by reading both sides again
 
 | Upstream # | Port test | State |
 |---|---|---|
-| 1, 2 | `test_rgb` | **ported, merged** — one Ruby method asserts both the basic and the percent-component vectors. Per the test-parity skill's own rule ("never merge two upstream tests into one Ruby test to save typing"), this is a **bijection gap**: 2 upstream tests → 1 named port test. The property coverage survives (both vectors are literally asserted), but a future edit that breaks only the percent-component path and leaves the basic path green has no test of its own to fail on; it would have to break `test_rgb` outright, not a single named case. |
-| 3, 4 | `test_hsl` | **ported, merged** — same shape as 1,2: basic and `deg`-suffix vectors asserted in one method. |
-| 5 | `test_hsv` | ported |
-| 6 | `test_cmyk` | ported |
-| 7 | `test_xyz` | ported |
-| 8 | `test_cielab` | ported |
-| 9 | `test_hwb` | ported |
-| 10 | `test_lch` | ported |
-| 11 | `test_lms` | ported |
-| 12 | `test_hunter_lab` | ported — and per `PORTING.md`, deliberately *not* reproducing upstream's own Hunter Lab white-point bug, so the numeric vector asserted is not literally upstream's broken one. The property ("Hunter Lab parses to the Nord colour") is still pinned. |
-| 13 | `test_oklab` | ported |
-| 14 | `test_oklch` | ported |
+| 1,2 (`rgb` basic + percent) | `test_rgb` | **merged, bijection gap** — one Ruby method for two upstream tests |
+| 3,4 (`hsl` basic + deg) | `test_hsl` | **merged, bijection gap** — same shape |
+| 5–14 | `test_hsv`, `test_cmyk`, `test_xyz`, `test_cielab`, `test_hwb`, `test_lch`, `test_lms`, `test_hunter_lab`, `test_oklab`, `test_oklch` | ported 1:1 |
 
-12 of 14 upstream tests have a clean 1:1 port test; 2 pairs (4 upstream tests)
-collapse into 2 port tests. 0 upstream tests are missing a counterpart
-entirely.
+Still true: a change that breaks only the percent-component `rgb()` path (or
+only the `deg`-suffixed `hsl()` path) while leaving the other half of its
+merged test green has no test of its own to fail on — it has to break the
+whole merged method. 0 upstream tests are missing a counterpart outright;
+the gap is bijection, not coverage.
 
-## `## Extra` (outside the count, not a parity claim)
+## The `GetResultMetas` false-green finding from last round: fixed in the check itself, not worked around
 
-- `test_hex_round_trip`, `test_hex_alpha_positions`, `test_hex_rejects_junk` —
-  cover the ground upstream's own 4 *disabled* hex tests covered, written
-  fresh since those upstream tests don't run either.
-- `test_every_notation_round_trips`, `test_conversions_are_self_inverse`,
-  `test_greyscale_edges_do_not_divide_by_zero`, `test_equality_is_by_byte` —
-  port-authored, no upstream counterpart.
-- `test/test_i18n.rb` — 12 runs, 65 assertions, this session. No upstream
-  Rust test suite exists for the gettext reader because upstream uses
-  `gettextrs` directly with no wrapper to test; this is pure port-side
-  coverage of `lib/eyedropper/i18n.rb`.
-- `test/drive_window.rb`, `test/drive_portals.rb`, `test/drive_search_provider.rb`
-  — 52 + 16 + 17 = 85 checks this session, 0 failures. These are integration
-  drives, not unit tests, and are the runtime gate's own source (see
-  `component-parity.md` for which units they do and do not actually exercise).
+Last round flagged `test/drive_search_provider.rb` check `[4]` for naming
+itself "the server answers GetResultMetas" while actually only asserting
+`!error.is_a?(Gio::DBusError)` — true regardless of the D-Bus reply's actual
+content, because of a known ruby-gnome `aa{sv}` unwrapping limitation. Reading
+the current file:
 
-## One drive check is narrower than its own "ok" line claims
-
-`test/drive_search_provider.rb` check `[4] the server answers GetResultMetas`
-asserts `!error.is_a?(Gio::DBusError)`. The run this session printed:
-
-```
-[4] the server answers GetResultMetas
-    (error: NotImplementedError: TODO: GVariant({sv}) -> Ruby)
-    ok   no D-Bus error
+```ruby
+check("call did not fail at the D-Bus protocol level (reply content unchecked here)") do
+  error.nil? || error.is_a?(NotImplementedError)
+end
 ```
 
-The check is engineered, with an honest comment at `test/drive_search_provider.rb:142-144`,
-to not count a `NotImplementedError` (a known ruby-gnome binding limitation
-unwrapping `aa{sv}`) as a failure — but it also means **check [4] passes
-unconditionally regardless of whether the server's `GetResultMetas` D-Bus
-reply is correct**, because the only error type that could fail it
-(`Gio::DBusError`) is not the error type this code path can ever raise for
-any other reason either. The actual content assertion in `[5]` calls
-`provider.metas_text` directly in-process, never over the bus. So **the
-`GetResultMetas` D-Bus method's wire behaviour is not verified by this
-suite at all** — the drive run's "17 of 17 checks passed" is true and still
-overstates what was tested. This is the "false green" shape the
-`accountability-ensurance` skill asks to be hunted for, found in a test file
-rather than in prose; logged there too.
+The check's **name now states its own limitation plainly**, and the
+assertion is now narrower (only `nil` or the specific known
+`NotImplementedError` pass — any other exception class, including a
+different `Gio::DBusError`, now fails it, where the old code only excluded
+`Gio::DBusError`). This is the finding closed correctly: not by deleting the
+honest caveat, not by papering over it, but by moving the caveat into the
+thing a reader actually sees in the test output. The underlying limitation
+(the reply's `aa{sv}` content is still checked only in-process, in step `[5]`,
+never over the wire) is unchanged and is not claimed fixed — it's a binding
+limitation, not a port bug — but the check no longer overstates what it
+proved.
 
-## What the 85-check gate actually covers
+## What the 88-check gate covers and does not
 
-85 = 52 (`drive_window.rb`) + 17 (`drive_search_provider.rb`) + 16
-(`drive_portals.rb`), reproduced this session, 0 failures, matching the
-stated gate. "16 components" is not derivable from any document in the repo
-— no ledger states which 16 of the 21 (now 23, see
-`component-identification.md`) identified units the drive run is claimed to
-cover. Reading the three drive scripts directly: they exercise units
-1, 2, 4–12, 16 (indirectly, via rendering only — never asserted against),
-18, 19, 20 — roughly 15–16 units depending on whether the un-asserted icon
-rendering counts, which is probably where "16" comes from, but it is this
-auditor's reconstruction, not anything written down by the port. Units 3
-(primary menu), 14 (stylesheet rules), 15/15a (settings schema incl. the two
-dropped keys), 17 (translation at runtime — no check switches `LANGUAGE` and
-asserts a translated string appears), and 21/21a/21b (desktop + metainfo
-metadata) are exercised by **no** check in any of the three drive scripts.
-Per this round's instruction, a component no check exercises is unverified,
-not done — five to seven of the 21–23 identified units fall in that bucket.
+Reading all three drive scripts' step lists directly (44 steps in
+`drive_window.rb`, plus the search-provider and portal scripts' own steps):
+no step in any of the three ever opens `primary_menu` and reads an item
+label, and no step renders a widget and asserts a specific CSS rule from
+`style.css` took effect. These are the same two units `component-parity.md`
+names as unverified. Per this round's instruction, that makes them
+unverified, not done, regardless of the 88/88 headline. Units 15/15a
+(settings schema) and 21a/21b (desktop/metainfo metadata) — gaps last round —
+are not exercised by any drive check either, but are now verified correct by
+direct file comparison (see `component-parity.md`), which is a different and
+weaker form of verification than a runtime check; recorded so "88 checks, 18
+components" is not read as implying file-level correctness was driven at
+runtime for those units — it was not, it was read.

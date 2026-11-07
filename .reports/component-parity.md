@@ -1,103 +1,73 @@
-# Component parity — eyedropper-rb
+# Component parity — eyedropper-rb (round 3)
 
 | | |
 |---|---|
-| Upstream | `origin/main` |
-| Port | `ruby` |
-| Units with full 4-axis parity | 18 / 21 identified, plus 2 new units found this pass (21a, 21b) and 1 split finding (15a) |
+| Upstream | `origin/main` @ `9c480cb` |
+| Port | `ruby` @ `9d03426` |
+| Runtime gate reproduced this round | `drive_window.rb` 55/55, `drive_search_provider.rb` 17/17, `drive_portals.rb` 16/16 = **88/88, 0 failed** — matches the stated gate exactly |
 
-This ledger reuses the 21-unit map in `.reports/component-inventory.md` /
-`component-identification.md` and adds the verdict this pass actually drove
-and checked, rather than re-reading CSS classes already read last time.
+This round re-verifies the three gaps the previous round found (schema keys,
+metainfo block, desktop fields) by reading current source and diffing, not
+by trusting `PORTING.md` or the prior `.reports/*.md`, and re-checks whether
+the two "unverified, no check looks" findings (primary menu, stylesheet) have
+gained a check since.
 
-## Units confirmed clean (count/style/behaviour/text all match, per the
-existing inventory and this pass's drive run)
+## Previously-found gaps: all three closed, verified by direct comparison
 
-Units 1–12, 16, 18–20: application actions/accelerators, window, primary
-menu, portal-error page, edit sheet, placeholder page, color-format row,
-history item + popover, preferences dialog + name-sources subpage,
-format-order row, about dialog, icon set, search provider, global shortcuts,
-background/D-Bus activation. `test/drive_window.rb`, `test/drive_portals.rb`
-and `test/drive_search_provider.rb` (this session's run: 52 + 16 + 17 = 85
-checks, 0 failures) drive the signal/behaviour axis for all of these except
-the primary menu (opened implicitly by the accelerator table, never clicked
-open and read) and the icon set (never asserted against — the drive run
-screenshots the window but no check compares a rendered icon against
-upstream's SVG).
+**Unit 15a (settings schema).** `data/com.github.finefindus.eyedropper.Rb.gschema.xml`
+now declares `cie-illuminants` (default `5`, same summary/description text as
+upstream) and `cie-standard-observer` (default `0`, same text) — 8 keys on
+both sides, byte-equivalent key-by-key. Not just declared: `lib/eyedropper/settings.rb`
+reads both (`cie_illuminant`, `cie_standard_observer`, `white_point`), and
+`lib/eyedropper/illuminant.rb` and `lib/eyedropper/color.rb` consume
+`white_point` in the XYZ/Lab math the keys exist to control — the keys are
+wired, not merely present for show. **Closed.**
 
-**Unit 3 (primary menu) and the icon set are therefore unverified, not
-verified-clean.** No check opens the `GMenu` and reads its item labels or
-mnemonics against `window.blp`'s `menu primary_menu` section.
+**Unit 21a (metainfo screenshots/features).** Read in full: the port's
+`<description>` now carries the same 4-item `<ul>` upstream has, and all 4
+`<screenshot>`/`<caption>` pairs are present with the same captions and image
+URLs. **Closed.**
 
-## Unit 13 — model replacement (history, format order)
+**Unit 21b (desktop entry fields).** `Keywords=Gnome;GTK;Color;Colorpicker;Picker;Palette;`
+and `Categories=GNOME;GTK;Development;Graphics;Utility;WebDevelopment;` now
+match upstream verbatim, and `DBusActivatable=true` is present. **Closed.**
 
-Confirmed clean. `lib/eyedropper/window.rb`'s plain arrays reproduce
-`GListStore`'s observable behaviour (the drive run's checks 10–13, 31–33
-exercise reorder-to-front, removal, and count) and `lib/eyedropper/notation.rb`
-replaces `src/widgets/preferences/color_format.rs`. Correspondence, not a gap,
-per the component-parity skill's own carve-out for GObject models replaced
-by plain Ruby.
+## Unit 3 (primary menu) and unit 14 (stylesheet): still unverified by any check
 
-## Unit 14 — stylesheet
+Both are structurally confirmed correct by direct reading this round (the
+menu's two sections and four `action:` targets in `window.rb` match
+`window.blp`'s `menu primary_menu` exactly; `data/style.css` is byte-identical
+to upstream's `data/resources/style.css`). **Neither claim rests on a check
+that actually ran** — `grep -n 'step('` across `test/drive_window.rb` (44
+steps) has no step that opens the `GMenuButton`'s popover and reads a label,
+and none renders a widget and asserts a CSS rule took effect. Per this
+round's instruction, a component no check exercises is unverified, not done,
+even when a human read confirms it. This is unchanged from last round — it
+was not fixed and was not claimed fixed, but it is still open and should not
+be absorbed into "88/88, 0 failed" as if the gate covers it.
 
-**Gap, not previously called one.** `component-inventory.md` marks this
-`yes`. Diffing the files:
+## Bijection / test-depth gaps (carried from `test-parity.md`, not re-litigated here)
 
-```
-diff data/resources/style.css (origin/main) data/style.css (ruby)
-```
+Not a widget gap, but it affects what "parity" can be claimed for units 2
+(edit sheet color math) and the parser: see `test-parity.md` for the 2
+upstream-test-pairs merged into 1 Ruby test each.
 
-The port's `data/style.css` is 1 file against upstream's 1 file and both
-exist, so the *presence* check that made unit 14 `yes` passed — but no CSS
-class attachment in any `lib/*.rb` file was checked against this stylesheet
-this pass, and no drive check reads a computed style. This unit is
-unverified on the style axis, same finding as unit 3's menu: a file existing
-on both sides is not evidence the rules inside it are the same rules, and
-nothing in the 85 checks looks.
+## Icon set (unit 16)
 
-## Unit 15 / 15a — settings schema
+Not independently re-verified beyond last round's finding that no check
+compares a rendered icon pixel-for-pixel against upstream's SVGs; the drive
+run screenshots the window (so an icon that failed to load at all would be
+visible in the PNG) but nothing asserts against it. Unverified, carried
+forward unchanged.
 
-**Gap.** `cie-illuminants` and `cie-standard-observer` are declared in
-upstream's `gschema.xml.in` with their own `<summary>`/`<description>` and
-are absent from the port's `.Rb.gschema.xml` — not unread, absent as schema
-keys. A `dconf` consumer, or a script that walks the schema to build a
-preferences UI generically, sees 6 keys where upstream has 8. `PORTING.md`
-asserts the two keys are "read by nothing" upstream and therefore not carried
-over; that claim is about *upstream's own code*, not about whether the key
-and its translatable description are a user-facing surface — they are: `dconf
-write` against either key still works against upstream's schema and does
-nothing in the port because the key does not exist there to write to.
-Recorded in `accountability-ensurance.md` as an excuse construction.
+## Worked totals this round
 
-## Unit 21 — desktop metadata: splits into two real gaps
-
-**21a — metainfo screenshot/feature block: gap.** Upstream's `<screenshots>`
-(4 captioned screenshots) and the `<description>`'s 4-item feature `<ul>` are
-entirely absent from the port's `.Rb.metainfo.xml`. Nothing moved them
-elsewhere — `grep -rn "Pick a Color\|HSL editor\|different formats" data/`
-finds no port file holding this text. 8 messages with no port counterpart at
-all.
-
-**21b — desktop entry fields: gap.** `Categories` drops `Development` and
-`WebDevelopment`; `Keywords` is a different string, not a reworded one
-(`Gnome;GTK;Color;Colorpicker;Picker;Palette;` vs
-`Color;Picker;Hex;RGB;HSL;CMYK;Palette;` — note the port's version isn't even
-a superset: `Gnome`, `Colorpicker` as one word, are gone, `Hex`/`RGB`/`HSL`/
-`CMYK` are new); `DBusActivatable=true` is missing, which — combined with the
-`.service` file this port does ship — means a shell search-result activation
-depends on whichever launch path the shell happens to take, not the one
-upstream declares supported.
-
-## Worked totals this pass
-
-| Axis | Verified clean | Unverified (no check looks) | Confirmed gap |
+| Axis | Verified clean (read + driven) | Verified clean (read only, no driving check) | Open gap |
 |---|---:|---:|---:|
-| Units (of 23 now identified) | 16 | 2 (menu, stylesheet) | 3 (schema keys, metainfo block, desktop fields) |
-| Messages affected by the 3 gaps | — | — | 2 (schema) + 8 (metainfo) + 2 (desktop fields) = 12, tracked again in `translation-parity.md` |
+| Units (of the ~23 identified) | 18 | 3 (primary menu, stylesheet, icon set) | 0 |
 
-A unit column reading 16/23 clean is not "component parity is nearly done" —
-it is 16 of 23 *driven*, with 2 more units present-but-never-checked and 3
-units with a located, named difference from upstream's text. None of the 3
-gaps is excused anywhere in this ledger; each is also logged against the
-exact PORTING.md sentence that currently frames it as settled, in
-`accountability-ensurance.md`.
+Three gaps closed since the last round, zero new gaps found, two
+"unverified" units unchanged. `clean: false` is still the honest verdict for
+*this* report only because of the unverified units, not because of any
+remaining confirmed defect — see `accountability-ensurance.md` for why
+"unverified" and "clean" are not the same word here.
