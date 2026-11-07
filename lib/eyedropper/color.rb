@@ -17,7 +17,10 @@ module Eyedropper
   # in; this port uses one scale on both sides so the round trip holds.
   class Color
     # D65, 2 degree standard observer, on the same 0..100 scale as #to_xyz.
-    WHITE_POINT = [95.047, 100.0, 108.883].freeze
+    # This is the fallback used when Settings is unavailable (e.g. a plain
+    # standalone require of this file); normally #white_point reads the
+    # user's `cie-illuminants`/`cie-standard-observer` preference instead.
+    WHITE_POINT = Illuminant.white_point(5, 0).freeze
 
     EPSILON = 216.0 / 24_389.0
     KAPPA = 24_389.0 / 27.0
@@ -25,6 +28,20 @@ module Eyedropper
     attr_reader :red, :green, :blue, :alpha
 
     class << self
+      # The white point the Lab/LMS/Hunter Lab conversions normalise against,
+      # following the `cie-illuminants` and `cie-standard-observer` settings.
+      #
+      # This only moves the normalisation point, not the sRGB<->XYZ primaries
+      # matrices in #to_xyz/.from_xyz, which stay the fixed D65 sRGB matrices
+      # — a full per-illuminant chromatic adaptation of those would be a much
+      # larger undertaking than what either upstream's schema or its (unused)
+      # declaration of these two keys calls for.
+      def white_point
+        Settings.instance.white_point
+      rescue StandardError
+        WHITE_POINT
+      end
+
       # Build from 0..255 integer components.
       def rgba(red, green, blue, alpha = 255)
         new(
@@ -129,9 +146,9 @@ module Eyedropper
 
         xyz = [inverse_f(fx), inverse_lab_y(lightness, fy), inverse_f(fz)]
         from_xyz(
-          xyz[0] * WHITE_POINT[0],
-          xyz[1] * WHITE_POINT[1],
-          xyz[2] * WHITE_POINT[2],
+          xyz[0] * white_point[0],
+          xyz[1] * white_point[1],
+          xyz[2] * white_point[2],
           alpha,
         )
       end
@@ -187,7 +204,7 @@ module Eyedropper
       # string parses to white. `(l / 100)^2 * wp.y` is the same formula with the
       # scales lined up, and it reproduces upstream's test vector.
       def from_hunter_lab(lightness, a_star, b_star, alpha = 1.0)
-        white_x, white_y, white_z = WHITE_POINT
+        white_x, white_y, white_z = white_point
         ka = (175.0 / 198.04) * (white_x + white_y)
         kb = (70.0 / 218.11) * (white_y + white_z)
 
@@ -362,7 +379,7 @@ module Eyedropper
     end
 
     def to_lab
-      fx, fy, fz = to_xyz.each_with_index.map { |value, index| lab_f(value / Color::WHITE_POINT[index]) }
+      fx, fy, fz = to_xyz.each_with_index.map { |value, index| lab_f(value / Color.white_point[index]) }
       [(116 * fy) - 16, 500 * (fx - fy), 200 * (fy - fz)]
     end
 
@@ -402,7 +419,7 @@ module Eyedropper
 
     def to_hunter_lab
       x, y, z = to_xyz
-      white_x, white_y, white_z = WHITE_POINT
+      white_x, white_y, white_z = Color.white_point
       ka = (175.0 / 198.04) * (white_x + white_y)
       kb = (70.0 / 218.11) * (white_y + white_z)
 

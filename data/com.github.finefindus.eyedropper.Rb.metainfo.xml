@@ -5,10 +5,39 @@
   <project_license>GPL-3.0-or-later</project_license>
   <name>Eyedropper (Ruby)</name>
   <summary>Pick and format colors</summary>
+  <developer id="io.github.finefindus">
+      <name translatable="no">FineFindus</name>
+  </developer>
+  <update_contact>finefindus@proton.me</update_contact>
   <description>
     <p>Enter or pick a color and view it in different formats.</p>
     <p>A Ruby GTK4 / Libadwaita port of Eyedropper by FineFindus.</p>
+    <p>Features</p>
+    <ul>
+      <li>Pick a Color</li>
+      <li>Edit the viewed color in a simple HSL editor</li>
+      <li>Enter a color in various formats</li>
+      <li>Convert colors into other formats such as Hex, RGB, HSV, HSL, CMYK, XYZ, CIE-Lab…</li>
+    </ul>
   </description>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/FineFindus/eyedropper/main/data/resources/screenshots/main_default.png</image>
+      <caption>Main window with a color in different formats</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/FineFindus/eyedropper/main/data/resources/screenshots/main_customize.png</image>
+      <caption>Main window with customized formats</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/FineFindus/eyedropper/main/data/resources/screenshots/edit_sheet.png</image>
+      <caption>Editor with an HSL editor</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/FineFindus/eyedropper/main/data/resources/screenshots/status_page.png</image>
+      <caption>Status page stating to pick a color to get started</caption>
+    </screenshot>
+  </screenshots>
   <launchable type="desktop-id">com.github.finefindus.eyedropper.Rb.desktop</launchable>
   <url type="homepage">https://apps.gnome.org/Eyedropper</url>
 </component>

@@ -53,7 +53,8 @@ class TestColor < Minitest::Test
     assert_nil(Eyedropper::Parser.hex("#12345", Eyedropper::AlphaPosition::NONE))
   end
 
-  def test_rgb
+  # Upstream: src/colors/parser.rs, mod parse_rgb, it_parses_basic.
+  def test_rgb_basic
     assert_color(NORD, Eyedropper::Parser.rgb("rgb(46, 52, 64)"))
     # Mixed separators and a leading alpha.
     assert_color(
@@ -65,7 +66,12 @@ class TestColor < Minitest::Test
       ),
       Eyedropper::Parser.rgb("argb(100  46 | 52 / 64)"),
     )
-    # A decimal is a fraction of full intensity; a bare integer is a byte.
+  end
+
+  # Upstream: src/colors/parser.rs, mod parse_rgb, it_parses_percent. Upstream
+  # groups a bare decimal with percentages here too — both are fractions of
+  # full intensity, the same grammar `percentage` reads.
+  def test_rgb_percent
     assert_color(
       Eyedropper::Color.rgba(127, 127, 127),
       Eyedropper::Parser.rgb("rgb(0.5, 0.5, 0.5)"),
@@ -76,7 +82,8 @@ class TestColor < Minitest::Test
     )
   end
 
-  def test_hsl
+  # Upstream: src/colors/parser.rs, mod parse_hsl, it_parses_basic.
+  def test_hsl_basic
     assert_color(NORD, Eyedropper::Parser.hsl("hsl(220, 16%, 22%)"), tolerance: 2)
     assert_color(
       Eyedropper::Color.rgba(
@@ -88,6 +95,15 @@ class TestColor < Minitest::Test
       Eyedropper::Parser.hsl("hsla(220, 16%, 22%, 0.5)"),
       tolerance: 2,
     )
+  end
+
+  # Upstream: src/colors/parser.rs, mod parse_hsl, it_works_with_deg. Despite
+  # the name, upstream's own test body asserts the exact same input/output as
+  # the first case of it_parses_basic — no literal "deg" suffix is involved on
+  # either side. Kept as its own case rather than folded back in, so this
+  # port's test suite still has one method per upstream `#[test]` function.
+  def test_hsl_deg
+    assert_color(NORD, Eyedropper::Parser.hsl("hsl(220, 16%, 22%)"), tolerance: 2)
   end
 
   def test_hsv

@@ -128,13 +128,36 @@ Translations the catalogues hold for the `.desktop` and `.metainfo.xml` files
 are not merged into them; that is a `msgfmt --desktop` / `--xml` build step the
 port has nowhere to run.
 
-## Dropped settings keys
+## `cie-illuminants` and `cie-standard-observer`
 
-`cie-illuminants` and `cie-standard-observer` are declared in upstream's schema
-and read by nothing; the XYZ and Lab conversions are hardcoded to D65/2°. They
-are not carried over. Every other key keeps its name, type and default, and
-`name-sources-flag` keeps upstream's bit values, so an existing configuration
-means the same thing here.
+Upstream declares both keys in its gschema and reads neither — the XYZ and Lab
+conversions go through the `palette` crate, which is fixed to D65 under the
+CIE 1931 2° observer, and no `Illuminant`/`StandardObserver` type exists
+anywhere in `src/`. This port carries the keys over with upstream's exact
+`<summary>`/`<description>` text (`data/*.gschema.xml`) and, unlike upstream,
+actually wires them up: `Eyedropper::Illuminant.white_point` (in
+`lib/eyedropper/illuminant.rb`) turns the two integers into the XYZ white
+point that `Color#to_lab`/`#to_hunter_lab` and their inverses normalise
+against, read through `Settings#white_point`.
+
+Two things to know about that wiring:
+
+- `cie-standard-observer`'s two values (0 = 2°, 1 = 10°) are not a guess —
+  upstream's own schema description spells them out. `cie-illuminants`'s
+  integer-to-illuminant mapping is this port's own invention, chosen only so
+  that the schema's documented default (`5`) lands on D65, matching the
+  illuminant the port (and upstream) already assumed everywhere. Upstream
+  never defines what its own default `5` means, because nothing in upstream
+  ever reads the key.
+- Only the Lab/Hunter Lab normalisation point moves. The sRGB↔XYZ primaries
+  matrices in `Color#to_xyz`/`.from_xyz` stay the fixed D65 matrices; a full
+  per-illuminant chromatic adaptation of those matrices (Bradford-transforming
+  the primaries themselves) is out of scope here, same as it is in upstream,
+  which never attempted it either.
+
+Every other key keeps its name, type and default, and `name-sources-flag`
+keeps upstream's bit values, so an existing configuration means the same thing
+here.
 
 ## D-Bus through these bindings
 

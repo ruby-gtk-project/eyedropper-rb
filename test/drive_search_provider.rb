@@ -140,9 +140,19 @@ steps << lambda do
     %((["#0000ffff"],)),
   ) do |_reply, error|
     # A Ruby client cannot read an `aa{sv}` reply back — the bindings raise on
-    # `{sv}` while unwrapping it — so the reply arriving at all is what is
-    # checked here, and its content is checked directly in the next step.
-    check("no D-Bus error") { !error.is_a?(Gio::DBusError) }
+    # `{sv}` while unwrapping it — so this cannot and does not check the
+    # reply's content; that is checked directly, bypassing D-Bus, in the next
+    # step. All this confirms is that the call did not fail at the protocol
+    # level (an unknown method, a bad signature, the service not being found)
+    # — not that GetResultMetas' actual aa{sv} payload is correct. Since
+    # `error` here can be nil, a Gio::DBusError, or the NotImplementedError
+    # the binding limitation above raises while trying to unwrap the reply,
+    # the check is written to accept all but the first of those explicitly,
+    # rather than merely rejecting Gio::DBusError, so a regression that starts
+    # raising some *other* exception class does not silently pass this step.
+    check("call did not fail at the D-Bus protocol level (reply content unchecked here)") do
+      error.nil? || error.is_a?(NotImplementedError)
+    end
     run_next(steps, main_loop)
   end
 end

@@ -13,12 +13,14 @@ module Eyedropper
   # process, which would make the color code untestable without a `make install`.
   class Settings
     DEFAULTS = {
-      "visible-formats"   => %w[name hex rgb hsl hsv cmyk],
-      "format-order"      => Notation::DEFAULT_ORDER,
-      "alpha-position"    => AlphaPosition::NONE,
-      "rgb-notation"      => 0,
-      "precision-digits"  => 2,
-      "name-sources-flag" => ColorNames::ALL.sum,
+      "visible-formats"       => %w[name hex rgb hsl hsv cmyk],
+      "format-order"          => Notation::DEFAULT_ORDER,
+      "alpha-position"        => AlphaPosition::NONE,
+      "rgb-notation"          => 0,
+      "cie-illuminants"       => 5,
+      "cie-standard-observer" => 0,
+      "precision-digits"      => 2,
+      "name-sources-flag"     => ColorNames::ALL.sum,
     }.freeze
 
     class << self
@@ -57,6 +59,15 @@ module Eyedropper
     def alpha_position = AlphaPosition.from_setting(read("alpha-position"))
 
     def rgb_decimal? = read("rgb-notation") == 1
+
+    def cie_illuminant = read("cie-illuminants").to_i
+
+    def cie_standard_observer = read("cie-standard-observer").to_i
+
+    # [x, y, z] on the 0..100 scale, following #cie_illuminant and
+    # #cie_standard_observer. See Illuminant for why the illuminant ordering
+    # is this port's own rather than a port of anything upstream.
+    def white_point = Illuminant.white_point(cie_illuminant, cie_standard_observer)
 
     def precision = read("precision-digits").to_i.clamp(0, 15)
 

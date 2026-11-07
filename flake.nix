@@ -206,12 +206,43 @@
             export GDK_PIXBUF_MODULE_FILE="${pkgs.librsvg}/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache"
             export XDG_DATA_DIRS="$PWD/build/share:${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}:${pkgs.gtk4}/share/gsettings-schemas/${pkgs.gtk4.name}:${pkgs.adwaita-icon-theme}/share:$XDG_DATA_DIRS"
             unset BUNDLE_GEMFILE BUNDLE_FROZEN BUNDLE_PATH
+
+            # `pkgs.bundlerEnv` generates its `bin/rake` (and every other gem
+            # binstub) hard-coded to BUNDLE_GEMFILE="<store path containing
+            # only a COPY of Gemfile+Gemfile.lock>" — bundlerEnv never copies
+            # the gemspec those files `gemspec`-reference, so Bundler.setup
+            # fails with "There are no gemspecs at ...-gemfile-and-lockfile"
+            # the instant anything in this checkout invokes `rake` (every rake
+            # task does, via bundler/setup). Re-pointing BUNDLE_GEMFILE at the
+            # real checkout's Gemfile is not enough on its own: `gems.wrappedRuby`
+            # is itself a makeWrapper binary that `--set`s BUNDLE_GEMFILE back
+            # to that same broken store path unconditionally, overriding
+            # whatever the caller's environment says. So this bypasses the
+            # wrapper and calls the plain, unwrapped interpreter directly,
+            # pointing GEM_HOME/GEM_PATH at the very same gems `gems`
+            # installs — nothing has to be installed or resolved over the
+            # network. This shell function shadows the broken binstub for
+            # interactive use.
+            rake() {
+              BUNDLE_GEMFILE="$PWD/Gemfile" BUNDLE_PATH="" BUNDLE_FROZEN="" BUNDLE_IGNORE_CONFIG=1 \
+                GEM_HOME="${gems}/lib/ruby/gems/${ruby.version.libDir}" \
+                GEM_PATH="${gems}/lib/ruby/gems/${ruby.version.libDir}" \
+                ${ruby}/bin/ruby -e 'require "bundler"; Bundler.setup; load Gem.bin_path("rake", "rake")' "$@"
+            }
+            export -f rake
+
             echo "eyedropper-rb devshell — ruby $(ruby -e 'print RUBY_VERSION')"
-            echo "  rake schema        compile the GSettings schema into build/share"
-            echo "  xvfb-run ruby ./bin/eyedropper-rb   run the app"
-            echo "  xvfb-run ruby test/drive_window.rb  drive the main window"
+            echo "  NOTE: 'rake'/'rake schema' still fail here — gemfiles/modular/style.gemfile"
+            echo "        pulls rubocop-packaging from a github: source this sandbox has no"
+            echo "        network to fetch; see AGENTS.md. Use the commands below directly."
+            echo "  xvfb-run ruby ./bin/eyedropper-rb         run the app"
+            echo "  xvfb-run ruby test/test_color.rb          color/parser tests, no display"
+            echo "  xvfb-run ruby test/drive_window.rb        drive the main window"
+            echo "  xvfb-run ruby test/drive_search_provider.rb  drive the search provider"
+            echo "  xvfb-run ruby test/drive_portals.rb       drive the picker/shortcuts portals"
+            echo "  glib-compile-schemas --targetdir=build/share/glib-2.0/schemas data/"
+            echo "                                             compile the GSettings schema by hand"
             echo "  ruby -e 'require \"rspec/core\"; exit RSpec::Core::Runner.run([\"--format\", \"progress\", \"spec\"])'"
-            echo "  rake               test + lint"
           '';
         };
       });

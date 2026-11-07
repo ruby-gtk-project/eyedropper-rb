@@ -6,6 +6,8 @@ Exec=eyedropper-rb
 Icon=com.github.finefindus.eyedropper.Rb
 Terminal=false
 Type=Application
-Categories=GTK;GNOME;Graphics;Utility;
+Categories=GNOME;GTK;Development;Graphics;Utility;WebDevelopment;
 StartupNotify=true
-Keywords=Color;Picker;Hex;RGB;HSL;CMYK;Palette;
+DBusActivatable=true
+# Translators: Search terms to find this application. Do NOT translate or localize the semicolons! The list MUST also end with a semicolon!
+Keywords=Gnome;GTK;Color;Colorpicker;Picker;Palette;
