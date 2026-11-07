@@ -284,6 +284,42 @@ GtkDriver.drive(Eyedropper::App.new, shots: SHOTS, interval: 500) do |d, app|
     window.window.visible_dialog&.close
   end
 
+  # Every other action check above fires the Gio::SimpleAction directly
+  # (`lookup_action("x").activate(nil)`), which proves the handler works but
+  # not that App::ACCELS actually reaches the window from a keypress. A real
+  # key cannot be forged from inside the process — see PORTING.md and
+  # gtk_driver's design notes — so this types into the Xvfb display the whole
+  # run is already on, exactly as tally-rb's drive script does for its search
+  # bar (test/drive_tally.rb, "the search bar captures keys on the window").
+  history_before_accel = nil
+
+  d.step("the Ctrl+R accelerator reaches the window from a real keypress") do
+    history_before_accel = window.history.length
+    d.check("xdotool is on PATH to type with") { system("xdotool", "--version", out: File::NULL, err: File::NULL) }
+    system("xdotool", "search", "--name", "^Eyedropper$", "windowfocus", out: File::NULL, err: File::NULL)
+    system("xdotool", "key", "--clearmodifiers", "ctrl+r", out: File::NULL, err: File::NULL)
+  end
+
+  # The key event is only queued by X when the lines above return; GTK does
+  # not process it until the main loop gets its next turn, so the check has to
+  # sit in its own, later step — the same reason the keypress and its
+  # assertion are two separate steps in tally-rb's drive script.
+  d.step("the keypress landed, not just the windowfocus call") do
+    d.check("history grew from the keypress, not from calling the action") do
+      window.history.length == history_before_accel + 1
+    end
+  end
+
+  d.step("the Ctrl+comma accelerator opens preferences from a real keypress") do
+    system("xdotool", "search", "--name", "^Eyedropper$", "windowfocus", out: File::NULL, err: File::NULL)
+    system("xdotool", "key", "--clearmodifiers", "ctrl+comma", out: File::NULL, err: File::NULL)
+  end
+
+  d.step("preferences opened from the keypress") do
+    d.check("a dialog is up") { !window.window.visible_dialog.nil? }
+    window.window.visible_dialog&.close
+  end
+
   d.step("the portal error page is reachable") do
     window.show_portal_error_page
     d.check("on the portal error page") { window.stack.visible_child_name == "portal-error" }
