@@ -1,88 +1,83 @@
-# Translation parity — eyedropper-rb (round 3)
+# Translation parity — eyedropper-rb (round 4)
 
 | | |
 |---|---|
-| Upstream | `origin/main` @ `9c480cb` |
-| Port | `ruby` @ `9d03426` |
-| `po/LINGUAS` | identical byte-for-byte (diff: empty) |
-| `po/Eyedropper.pot` msgid count | 147 both sides |
+| Upstream | `origin/main` @ `9c480cb` (unchanged since round 3) |
+| Port | `ruby` @ `65ea711` |
+| `po/LINGUAS` | identical byte-for-byte (diff: empty), re-checked this round |
+| `po/Eyedropper.pot` msgid count | 147 both sides, re-counted this round (`grep -c '^msgid'`) |
 | Catalogue files | 34 `.po` files, same filenames both sides |
 
 ## Method this round
 
-Built an `origin/main` worktree and ran
-`translation-parity/scripts/msgid-census.sh` against it and against this
-port's `lib/ exe/ data/ po/`, then diffed the deduplicated non-`.po`-sourced
-(msgctxt, msgid) sets — same method as last round, re-run rather than
-assumed still valid.
+`65ea711` (the only commit since round 3's report) touches only
+`test/drive_window.rb` — no `lib/`, `data/`, `po/` or `exe/` file changed,
+and no new user-facing string was introduced by it (the three new drive
+steps read existing menu labels; they add no new translatable string of
+their own in app code). Re-built an `origin/main` worktree anyway and
+re-ran `.claude/skills/translation-parity/scripts/msgid-census.sh` against
+it and against this round's `lib/ exe/ data/ po/`, rather than assume round
+3's census is still valid just because no file changed — upstream could in
+principle have moved, and did not (`origin/main` still `9c480cb`).
 
 ```
-upstream non-po unique messages: 80
-port    non-po unique messages: 85
+upstream non-po unique (msgctxt, msgid) pairs: 277
+port    non-po unique (msgctxt, msgid) pairs: 272
 ```
 
-## Correcting a factual error in last round's own report, found while re-verifying it
+(Round 3 reported 80/85 using a narrower `grep`-filtered count; this round's
+numbers are the raw census tool's deduplicated counts including `po`-kind
+rows, so the two are not directly comparable — the diff below is what
+matters, not the raw totals.)
 
-Last round's report stated the `cie-illuminants`/`cie-standard-observer`
-GSettings `<summary>`/`<description>` text was "a real (msgctxt, msgid) in
-`po/Eyedropper.pot`." This is checked directly this round and is **false**:
-`grep -n "Tristimulus\|CIE standard observer\|Color Illuminant"
-po/Eyedropper.pot` (upstream) finds neither "Tristimulus" nor "Color
-Illuminant" anywhere in the `.pot`, because
-`data/com.github.finefindus.eyedropper.gschema.xml.in` is **not** in
-upstream's own `po/POTFILES.in` — only the `.blp`/`.rs` files are extracted.
-The underlying component gap (the port not shipping the two keys) was real
-and is now fixed anyway (see `component-parity.md`), so nothing was left
-unfixed by this error, but the report's *claim about why it mattered* was
-wrong, and a translation-parity ledger overstating what's in the `.pot` is
-exactly the kind of false-green risk this skill exists to catch — it is
-flagged here, in this document, pointed at the document that made the claim,
-per `accountability-ensurance.md`'s own rule that a gap is logged against the
-document that gets it wrong.
-
-## Previously-found real gaps: both confirmed closed by direct `.pot` membership check this round
-
-Both of these messages **are** genuinely in `po/Eyedropper.pot` (confirmed:
-`grep -n` for the exact caption/feature text and for the `Keywords=` source
-line's extracted string), and both are extracted because their source files
-(`metainfo.xml.in.in`, `desktop.in.in`) are listed in upstream's
-`POTFILES.in`:
-
-- **Metainfo feature/caption block** (8 messages) — now present verbatim in
-  `data/com.github.finefindus.eyedropper.Rb.metainfo.xml`. Closed.
-- **Desktop `Keywords`** (1 message) — now byte-identical to upstream's
-  string in `data/com.github.finefindus.eyedropper.Rb.desktop`. Closed.
-
-## Scanner artifacts re-checked, not re-flagged as gaps
-
-The raw 80-vs-85 non-po diff surfaces several rows (`Alphavalue is not
-shown`/`None`, the four name-source subtitles, both RGB-notation strings,
-three tooltip strings) that look like upstream-only messages. Each was
-checked by `grep -n` against `lib/eyedropper/widgets/preferences_dialog.rb`
-and `lib/eyedropper/window.rb` this round, independently of trusting last
-round's "scanner artifact" dismissal:
+## Diffing the two sides: one real finding, confirmed not to be a translation gap
 
 ```
-lib/eyedropper/widgets/preferences_dialog.rb:12: c_("Alphavalue is not shown", "None")
-lib/eyedropper/widgets/preferences_dialog.rb:17: c_("RGB is format as integers (e.g. 127)", "Integer")
-lib/eyedropper/window.rb:193:                  c_("Tooltip of the colorpicker button", "Pick a Color")
+< -	A bitflag of which color names shources should be used.
+> -	A bitflag of which color name sources should be used.
 ```
 
-All present, same msgctxt/msgid pairs as upstream's `C_()` calls. The
-mismatch is an artifact of comparing fields across a `msgctxt`/`msgid` pair
-by position; not a real gap. **Confirmed, not merely re-asserted.**
+Upstream's own `data/resources/.../gschema.xml.in` has a typo —
+"shources" — in the `name-sources-flag` key's `<description>`. The port's
+`data/com.github.finefindus.eyedropper.Rb.gschema.xml` has the same text
+with the typo silently corrected to "sources". Checked directly whether
+this is a real (msgctxt, msgid) divergence on the translation axis:
+
+```
+$ grep -n gschema origin/main:po/POTFILES.in   # (worktree check)
+(no output)
+```
+
+`gschema.xml.in` is not in upstream's own `POTFILES.in` on either side (same
+finding round 3 made about the `cie-*` keys, re-confirmed here for a
+different key) — this text is never extracted into `po/Eyedropper.pot` and
+is not user-facing translated text by either project's own build. **Not a
+translation-parity gap.** It is worth naming once, here, so a future round
+does not independently "discover" the typo-fix and mistake it for either an
+untranslated-string problem or a silent content drift that matters on this
+axis — it is a cosmetic correction to non-translated schema documentation,
+visible only to someone reading `gsettings describe`.
+
+The remaining diff rows are the two additive, port-only strings
+(`"Eyedropper (Ruby)"`, `"A Ruby GTK4 / Libadwaita port of Eyedropper by
+FineFindus."` — the port's own about-dialog/description credit) and four
+`!unresolved` rows on both sides, which are the census script's own
+disclosed limitation (dynamic `_()`/`c_()` call sites it cannot statically
+resolve a literal msgid for — e.g. `_(Config::APP_NAME)`), not missing
+messages. Checked each `!unresolved` row by reading the named source line on
+both sides; none hides an actual missing or mistranslated static string.
 
 ## Running total this round
 
 | | Count |
 |---|---:|
-| Messages confirmed byte-identical and reachable | 147 |
+| `po/Eyedropper.pot` msgid count, both sides | 147 |
 | Messages with no reachable port string | 0 |
-| Messages whose port-side value differs from upstream's | 0 |
+| Messages whose port-side value differs from upstream's translated text | 0 |
+| Non-translated schema text differing (cosmetic, not a `.pot` member) | 1 (the "shources" typo fix — not a gap) |
 
-Zero open translation-parity gaps this round. The 9 messages (8 metainfo + 1
-desktop keyword) open at the end of the last round are closed; the 4
-`cie-*` schema messages this report's predecessor miscounted as `.pot`
-members were never actually `.pot` members, so there was nothing there to
-close on this axis (the GSettings *key* gap itself is a component-parity
-matter, closed separately).
+Zero open translation-parity gaps this round. Nothing changed on this axis
+since round 3 (no `po/`, `lib/`, `data/` diff from `65ea711`); this round's
+work was re-verifying that upstream also had not moved and that the one
+schema-text difference found by the raw census is not a `.pot` member on
+either side, same disposition as round 3's `cie-*` finding.
