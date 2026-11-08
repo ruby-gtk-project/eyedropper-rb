@@ -3,6 +3,7 @@
 # Drives the real window: every page, every dialog, the edit sheet, the history
 # strip and the format rows. Run it with `rake drive`.
 
+require "open3"
 require "tmpdir"
 
 # Without a session bus GSettings cannot reach dconf, and every write is
@@ -51,6 +52,131 @@ GtkDriver.drive(Eyedropper::App.new, shots: SHOTS, interval: 500) do |d, app|
     end
     d.check("the drag-handle icon used by format-order rows resolves") do
       theme.has_icon?("list-drag-handle-symbolic")
+    end
+  end
+
+  d.step("the resolved icon files are byte-identical to upstream's SVG sources") do
+    # `has_icon?` above only proves a file of that name is found; it says
+    # nothing about what is drawn inside it. A differently-drawn icon
+    # sharing the same name would still pass that check. This reads the
+    # exact files `install_icons`'s search path serves — the same
+    # `Eyedropper::DATA_DIR` the running theme just resolved against — and
+    # compares their bytes against upstream's own committed SVG sources
+    # (read via `git show`, not a second copy pasted into this repo), so a
+    # pixel-level redraw with the same icon name would fail this check even
+    # though `has_icon?` would still pass it.
+    repo_root = File.expand_path("..", __dir__)
+    icons_dir = File.join(
+      Eyedropper::DATA_DIR,
+      "icons",
+      "hicolor",
+      "symbolic",
+      "apps",
+    )
+
+    compare_to_upstream = lambda do |port_filename, upstream_path|
+      port_path = File.join(icons_dir, port_filename)
+      upstream_svg, status = Open3.capture2(
+        "git",
+        "-C",
+        repo_root,
+        "show",
+        "origin/main:#{upstream_path}",
+      )
+      status.success? && File.read(port_path) == upstream_svg
+    end
+
+    d.check("color-select-symbolic.svg matches upstream's data/resources/icons source") do
+      compare_to_upstream.call(
+        "color-select-symbolic.svg",
+        "data/resources/icons/color-select-symbolic.svg",
+      )
+    end
+    d.check("the app symbolic icon matches upstream's data/icons source") do
+      compare_to_upstream.call(
+        "com.github.finefindus.eyedropper.Rb-symbolic.svg",
+        "data/icons/com.github.finefindus.eyedropper-symbolic.svg",
+      )
+    end
+  end
+
+  d.step("the installed GSettings schema is the real compiled schema on disk") do
+    # Settings.rb already reads through Gio::Settings; this reaches for the
+    # schema directly, independent of that wrapper, so a bug in Settings.rb
+    # could not make this check pass by accident. `schema_path` below is
+    # the exact `.gschema.xml` file the component-parity report diffed by
+    # eye — reading it here, at drive time, and checking its key set and
+    # defaults against the live `Gio::Settings` the running app would use,
+    # moves that diff from "read once by a person" to "asserted every run".
+    schema_id = Eyedropper::Config::APP_ID
+    schema_path = File.join(Eyedropper::DATA_DIR, "#{schema_id}.gschema.xml")
+    schema_source = Gio::SettingsSchemaSource.default
+    schema = schema_source&.lookup(schema_id, true)
+
+    d.check("the schema is registered under the app's own id") { !schema.nil? }
+
+    expected_defaults = {
+      "visible-formats"       => %w[name hex rgb hsl hsv cmyk],
+      "format-order"          => Eyedropper::Notation::DEFAULT_ORDER,
+      "alpha-position"        => 0,
+      "rgb-notation"          => 0,
+      "cie-illuminants"       => 5,
+      "cie-standard-observer" => 0,
+      "precision-digits"      => 2,
+      "name-sources-flag"     => Eyedropper::ColorNames::ALL.sum,
+    }
+    settings = Gio::Settings.new(schema_id)
+
+    d.check("every key the .gschema.xml file declares is registered, and no others") do
+      schema.keys.sort == expected_defaults.keys.sort
+    end
+    d.check("cie-illuminants and cie-standard-observer read back their real defaults") do
+      settings.get_value("cie-illuminants") == 5 && settings.get_value("cie-standard-observer") == 0
+    end
+    d.check("the other 6 keys all read back their real schema defaults") do
+      expected_defaults.reject { |k, _| k.start_with?("cie-") }.all? do |key, value|
+        settings.get_value(key) == value
+      end
+    end
+    d.check("the schema file read here is the one on disk, not a stand-in") do
+      File.read(schema_path).include?("id=\"#{schema_id}\"")
+    end
+  end
+
+  d.step("the metainfo and desktop files are read back and checked, not just diffed") do
+    metainfo_path = File.join(
+      Eyedropper::DATA_DIR,
+      "#{Eyedropper::Config::APP_ID}.metainfo.xml",
+    )
+    desktop_path = File.join(
+      Eyedropper::DATA_DIR,
+      "#{Eyedropper::Config::APP_ID}.desktop",
+    )
+    metainfo = File.read(metainfo_path)
+
+    d.check("metainfo carries the app's own id") do
+      metainfo.include?("<id>#{Eyedropper::Config::APP_ID}</id>")
+    end
+    d.check("metainfo declares all 5 upstream screenshots") do
+      metainfo.scan("<screenshot").length == 5
+    end
+    d.check("metainfo's feature list has all 4 upstream bullet points") do
+      metainfo.scan(%r{<li>.*?</li>}).length == 4
+    end
+    d.check("metainfo carries the SearchProvider and ModernToolkit kudos") do
+      metainfo.include?("<kudo>SearchProvider</kudo>") && metainfo.include?("<kudo>ModernToolkit</kudo>")
+    end
+
+    key_file = GLib::KeyFile.new
+    key_file.load_from_file(desktop_path, GLib::KeyFile::Flags::NONE)
+    d.check("desktop entry's Icon matches the app id") do
+      key_file.get_string("Desktop Entry", "Icon") == Eyedropper::Config::APP_ID
+    end
+    d.check("desktop entry is DBus-activatable, same as upstream") do
+      key_file.get_boolean("Desktop Entry", "DBusActivatable")
+    end
+    d.check("desktop entry keeps upstream's search Keywords") do
+      key_file.get_string("Desktop Entry", "Keywords").include?("Colorpicker")
     end
   end
 

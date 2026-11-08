@@ -155,6 +155,15 @@ Two things to know about that wiring:
   the primaries themselves) is out of scope here, same as it is in upstream,
   which never attempted it either.
 
+One deliberate exception to "upstream's exact text" above: upstream's own
+`name-sources-flag` key description has a typo —
+`"A bitflag of which color names shources should be used."` — which this
+port's `data/*.gschema.xml` silently corrects to "sources". This is a
+one-word spelling fix to non-translated schema documentation (the key is not
+in either project's `po/POTFILES.in`, so it is not a translation-parity
+concern either), noted here so a future round reads it as the deliberate
+choice it is rather than an unexplained divergence from upstream's text.
+
 Every other key keeps its name, type and default, and `name-sources-flag`
 keeps upstream's bit values, so an existing configuration means the same thing
 here.
